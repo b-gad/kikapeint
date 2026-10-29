@@ -37,7 +37,7 @@ COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 FRWIKI_API = "https://fr.wikipedia.org/w/api.php"
 COMMONS_FILEPATH = "https://commons.wikimedia.org/wiki/Special:FilePath/"
 COMMONS_FILEPAGE = "https://commons.wikimedia.org/wiki/File:"
-HEADERS = {"User-Agent": "art-quiz/0.2 (projet perso; gadretorix.corp@gmail.com) python-requests"}
+HEADERS = {"User-Agent": "kikapeint/0.2 (projet perso; gadretorix.corp@gmail.com) python-requests"}
 
 TYPES = {"Q3305213": "peinture", "Q860861": "sculpture"}
 IMAGE_WIDTH = 800
