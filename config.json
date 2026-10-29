@@ -1,0 +1,22 @@
+{
+  "year_min": 1850,
+  "year_max": 1950,
+  "movements": [
+    {"id": "Q40415",  "name": "Impressionnisme",      "year_min": 1850, "year_max": 1950},
+    {"id": "Q166713", "name": "Post-impressionnisme", "year_min": 1850, "year_max": 1950},
+    {"id": "Q166593", "name": "Fauvisme",             "year_min": 1850, "year_max": 1950},
+    {"id": "Q164800", "name": "Symbolisme",           "year_min": 1850, "year_max": 1950},
+    {"id": "Q80113",  "name": "Expressionnisme",      "year_min": 1850, "year_max": 1950},
+    {"id": "Q42934",  "name": "Cubisme",              "year_min": 1850, "year_max": 1925}
+  ],
+  "extra_artists": [],
+  "limits": {
+    "sparql_rows_per_movement": 1500,
+    "works_per_movement": 120,
+    "works_per_artist": 12
+  },
+  "difficulty": {
+    "easy_min_artist_fame": 88,
+    "easy_min_work_fame": 8
+  }
+}
