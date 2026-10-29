@@ -1,4 +1,4 @@
-# art-quiz
+# kikapeint
 
 Quiz d'art statique (HTML/JS, sans backend) pour GitHub Pages : on devine l'artiste d'une œuvre
 parmi quatre artistes proches (même mouvement, même époque).
