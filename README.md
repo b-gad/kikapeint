@@ -24,7 +24,8 @@ Puis ouvrir <http://localhost:8000>. Un serveur est nécessaire : le navigateur 
 | `manual_works.json` | Œuvres ajoutées à la main | **jamais** |
 | `difficulty_overrides.json` | Surcharges de difficulté par œuvre ou artiste | **jamais** |
 | `fetch_works.py` | Génère les données | — |
-| `index.html`, `style.css`, `quiz.js`, `logic.js` | Le quiz (interface et logique de tirage) | non |
+| `index.html`, `style.css`, `quiz.js`, `logic.js`, `favorites.js` | Le quiz (interface, tirage des questions, coups de cœur) | non |
+| `favorites.json` | Coups de cœur exportés (facultatif, à la racine) | non : il vient de l'export du site |
 | `data/works.json` | Données du quiz (généré, ne pas éditer à la main) | oui, entièrement réécrit |
 
 ## Régénérer les données
@@ -97,6 +98,40 @@ l'écrire, et les œuvres manuelles ne sont pas soumises aux plafonds.
   avertissement, et une image injoignable fait écarter l'œuvre avec un message.
 
 Puis régénère les données.
+
+## Coups de cœur
+
+Après chaque réponse, deux boutons en forme de cœur permettent d'enregistrer l'œuvre et/ou l'artiste,
+avec une note personnelle facultative. La page « Mes coups de cœur » (lien discret sur l'accueil) les
+présente dans une galerie de cadres : un clic sur un cadre affiche la note, le titre, l'artiste et
+l'année, et permet de modifier la note ou de retirer le coup de cœur. Un artiste est représenté par
+son œuvre la plus connue (`work_fame` le plus élevé).
+
+Les coups de cœur sont gardés dans le `localStorage` du navigateur (clé `kikapeint:favorites:v1`),
+identifiés par `id` pour les œuvres et `artist_id` pour les artistes. Si le stockage est indisponible
+(navigation privée, par exemple), le jeu fonctionne et les coups de cœur ne durent que le temps de la
+page.
+
+**Les sauvegarder dans le dépôt (pour GitHub Pages)** : le site étant statique, le navigateur ne peut pas
+écrire dans le dépôt. La procédure est manuelle :
+
+1. Sur la page « Mes coups de cœur », clique sur **Exporter** : le navigateur télécharge `favorites.json`.
+2. Place ce fichier **à la racine du dépôt** (à côté de `index.html`), en remplaçant l'ancien.
+3. Commite et pousse :
+   ```bash
+   git add favorites.json
+   git commit -m "Mise à jour des coups de cœur"
+   git push
+   ```
+
+Au chargement, le site lit `favorites.json` s'il existe et le fusionne avec le `localStorage` :
+- une entrée qui existe des deux côtés garde la version du `localStorage` (note comprise) ;
+- une entrée seulement dans le fichier est ajoutée ;
+- un coup de cœur retiré dans le navigateur ne revient pas depuis le fichier, jusqu'à ce qu'on le
+  rajoute ou qu'on réexporte.
+
+Format : `{"version": 1, "works": [{"id", "note", "added", "label"}], "artists": [...]}`. `label` n'est
+là que pour la lecture humaine et est ignoré au chargement.
 
 ## Difficulté
 
