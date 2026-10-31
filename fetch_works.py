@@ -30,6 +30,7 @@ ROOT = Path(__file__).parent
 CONFIG_FILE = ROOT / "config.json"
 MANUAL_FILE = ROOT / "manual_works.json"
 CURATED_FILE = ROOT / "curated_works.json"  # généré par import_list.py
+PERIOD_FILE = ROOT / "period_works.json"    # généré par fill_periods.py
 OVERRIDES_FILE = ROOT / "difficulty_overrides.json"
 OUT_FILE = ROOT / "data" / "works.json"
 
@@ -329,6 +330,39 @@ def load_curated():
 
 # --- 6. Notoriété et difficulté ------------------------------------------------
 
+def load_period_works():
+    """Lit period_works.json (généré par fill_periods.py). Niveaux de difficulté calculés comme pour les autres."""
+    if not PERIOD_FILE.exists():
+        return []
+    works = json.loads(PERIOD_FILE.read_text(encoding="utf-8"))
+    for w in works:
+        w["commons_file"] = commons_filename(w["image"])
+    return works
+
+
+def merge_period_works(existing, movement_names, easy_cfg, periods, table):
+    """Ajoute à des œuvres déjà au format works.json celles de period_works.json qu'elles ne contiennent pas.
+    Les niveaux des œuvres existantes ne bougent pas : les nouvelles sont classées avec les mêmes règles
+    (seuils « facile », puis médiane de notoriété des œuvres non faciles déjà présentes)."""
+    have = {w["id"] for w in existing}
+    new = [w for w in load_period_works() if w["id"] not in have]
+    for w in new:
+        w["work_fame"], w["artist_fame"] = w["work_sitelinks"], w["artist_sitelinks"]
+        w["image_page"] = image_page(w["commons_file"])
+        if w["movement"] not in movement_names:
+            movement_names.append(w["movement"])
+    rest = sorted((w["work_fame"], w["artist_fame"]) for w in existing if w["difficulty"] != LEVELS[0])
+    median = rest[len(rest) // 2] if rest else (0, 0)
+    for w in new:
+        easy = w["artist_fame"] >= easy_cfg["easy_min_artist_fame"] and w["work_fame"] >= easy_cfg["easy_min_work_fame"]
+        w["difficulty"] = LEVELS[0] if easy else LEVELS[1] if (w["work_fame"], w["artist_fame"]) >= median else LEVELS[2]
+        w["difficulty_source"] = "computed"
+    apply_overrides(new)
+    for w in new:
+        w["period"] = period_for(w, periods, table)
+    return existing + new, len(new)
+
+
 def fetch_sitelinks(ids):
     """Nombre de sitelinks Wikidata pour des identifiants Q (utile aux artistes des œuvres manuelles)."""
     out = {}
@@ -518,6 +552,9 @@ def main():
     ap.add_argument("--skip-link-check", action="store_true", help="saute la vérification HEAD des images (debug)")
     ap.add_argument("--periods-only", action="store_true",
                     help="recalcule seulement le champ period de data/works.json (sans réseau, aucun autre champ modifié)")
+    ap.add_argument("--merge-only", action="store_true",
+                    help="ajoute à data/works.json les œuvres de period_works.json absentes (sans réseau, "
+                         "les œuvres existantes ne changent pas)")
     ap.add_argument("--pageviews", action="store_true",
                     help="ajoute les vues Wikipédia fr mensuelles (12 derniers mois) à la notoriété ; plus lent")
     args = ap.parse_args()
@@ -531,6 +568,16 @@ def main():
         out = [{k: w.get(k) for k in OUTPUT_FIELDS} for w in works]
         OUT_FILE.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         log(f"  {OUT_FILE.relative_to(ROOT)} : champ period mis à jour sur {len(out)} œuvres")
+        period_summary(out, periods, cfg["movement_periods"])
+        return
+    if args.merge_only:
+        works = json.loads(OUT_FILE.read_text(encoding="utf-8"))
+        movement_names = list(dict.fromkeys(w["movement"] for w in works))
+        works, added = merge_period_works(works, movement_names, cfg["difficulty"], periods, cfg["movement_periods"])
+        works.sort(key=lambda w: (movement_names.index(w["movement"]), w["artist"], w["year"]))
+        out = [{k: w.get(k) for k in OUTPUT_FIELDS} for w in works]
+        OUT_FILE.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        log(f"  {OUT_FILE.relative_to(ROOT)} : {added} œuvres ajoutées, {len(out)} au total")
         period_summary(out, periods, cfg["movement_periods"])
         return
     movement_names = [m["name"] for m in cfg["movements"]]
@@ -604,6 +651,13 @@ def main():
         if w["movement"] not in movement_names:
             movement_names.append(w["movement"])
     selected = selected + curated
+    taken |= {w["id"] for w in curated}
+    period_works = [w for w in load_period_works() if w["id"] not in taken]
+    log(f"  period_works.json : {len(period_works)} œuvres ajoutées")
+    for w in period_works:
+        if w["movement"] not in movement_names:
+            movement_names.append(w["movement"])
+    selected = selected + period_works
     for w in manual:
         info = licenses.get(w["commons_file"], {})
         w["image_license"], w["image_credit"] = info.get("license"), info.get("credit")

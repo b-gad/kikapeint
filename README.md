@@ -26,6 +26,7 @@ Puis ouvrir <http://localhost:8000>. Un serveur est nécessaire : le navigateur 
 | `oeuvres_celebres_300.csv` | Liste d'œuvres célèbres à importer (entrée de `import_list.py`) | non |
 | `import_list.py` | Retrouve les œuvres du CSV sur Wikidata et produit `curated_works.json` | — |
 | `curated_works.json` | Œuvres importées du CSV (généré, fusionné par `fetch_works.py`) | oui, par `import_list.py` |
+| `fill_periods.py`, `period_artists.json` | Artistes célèbres par période (à éditer) → `period_works.json` (généré, fusionné par `fetch_works.py`) | `period_works.json` : oui, par `fill_periods.py` |
 | `fetch_works.py` | Génère les données | — |
 | `index.html`, `style.css`, `quiz.js`, `logic.js`, `favorites.js` | Le quiz (interface, tirage des questions, coups de cœur) | non |
 | `favorites.json` | Coups de cœur exportés (facultatif, à la racine) | non : il vient de l'export du site |
@@ -184,6 +185,24 @@ mémorisée dans le `localStorage` (clé `kikapeint:periods:v1`).
 
 Après la réponse, la carte de notice indique la période de l'œuvre (nom, dates, courte explication, lien
 Wikipédia). Le texte et le lien viennent de `description` et `wikipedia_url` de chaque période dans `config.json`.
+
+## Compléter les périodes (artistes célèbres)
+
+`period_artists.json` liste des artistes célèbres, chacun avec un mouvement qui décide de sa période (table
+`movement_periods`), plus `works_per_artist` (9) et `target_per_period` (60 : une période ne reçoit des œuvres que
+jusqu'à ce total). Pour le régénérer :
+
+```bash
+python3 fill_periods.py            # Wikidata + Commons + Wikipédia, une dizaine de minutes → period_works.json
+python3 fetch_works.py --merge-only   # ajoute les nouvelles œuvres à data/works.json, sans réseau
+```
+
+Le script retrouve chaque artiste sur Wikidata, prend ses peintures et sculptures les plus connues (sitelinks),
+ne garde que celles dont l'image est libre, qui ont une notice Wikipédia fr et une image joignable. `--merge-only`
+n'altère pas les œuvres déjà présentes ; les nouvelles reçoivent un niveau avec les mêmes règles (voir ci-dessous).
+Une génération complète (`python3 fetch_works.py`) fusionne aussi `period_works.json`.
+Limite : les peintures récentes sont presque toutes sous droits, les périodes d'après 1945 sont donc surtout
+représentées par des sculptures dont la photo est libre.
 
 ## Difficulté
 
