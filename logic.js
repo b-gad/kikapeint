@@ -59,9 +59,10 @@
       a.movements.add(w.movement);
     }
     for (const a of artists.values()) a.year = median(a.years);
-    // « Très connu » = au moins aussi connu que le moins connu des artistes du niveau facile.
-    const easyFameMin = Math.min(...byLevel.facile.map((w) => w.artist_fame || 0));
-    for (const a of artists.values()) a.famous = (a.fame || 0) >= easyFameMin;
+    // « Très connu » = l'artiste a au moins une œuvre au niveau facile (artistes les plus notoires
+    // et artistes de la liste importée).
+    const easyArtists = new Set(byLevel.facile.map((w) => w.artist_id));
+    for (const a of artists.values()) a.famous = easyArtists.has(a.id);
     return { works, byId, artists: [...artists.values()], byLevel };
   }
 

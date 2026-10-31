@@ -9,7 +9,7 @@ Pipeline :
   2. Filtre sur les licences libres des images (API Commons)
   3. Notices courtes en français (API Wikipédia fr)
   4. Sélection avec plafonds, vérification HEAD de chaque image retenue
-  5. Fusion avec manual_works.json
+  5. Fusion avec curated_works.json (généré par import_list.py, hors plafonds) et manual_works.json
   6. Notoriété (sitelinks Wikidata, vues Wikipédia en option), niveaux de difficulté,
      surcharges de difficulty_overrides.json (jamais modifié), écriture de data/works.json
 """
@@ -29,6 +29,7 @@ import requests
 ROOT = Path(__file__).parent
 CONFIG_FILE = ROOT / "config.json"
 MANUAL_FILE = ROOT / "manual_works.json"
+CURATED_FILE = ROOT / "curated_works.json"  # généré par import_list.py
 OVERRIDES_FILE = ROOT / "difficulty_overrides.json"
 OUT_FILE = ROOT / "data" / "works.json"
 
@@ -312,6 +313,16 @@ def load_manual(licenses_needed):
     return works
 
 
+def load_curated():
+    """Lit curated_works.json (généré par import_list.py). Les images y ont déjà été vérifiées."""
+    if not CURATED_FILE.exists():
+        return []
+    works = json.loads(CURATED_FILE.read_text(encoding="utf-8"))
+    for w in works:
+        w["commons_file"] = commons_filename(w["image"])
+    return works
+
+
 # --- 6. Notoriété et difficulté ------------------------------------------------
 
 def fetch_sitelinks(ids):
@@ -373,19 +384,20 @@ def add_fame(works, with_views):
             log(f"  vues : {n}/{len(works)}")
 
 
-def assign_levels(works, easy_min_artist_fame, easy_min_work_fame):
-    """Facile : artiste ET œuvre très connus (seuils de config.json).
-    Le reste est coupé en deux moitiés sur (work_fame, artist_fame) : la plus notoire est « moyen »,
+def assign_levels(works, easy_min_artist_fame, easy_min_work_fame, curated_ids=frozenset()):
+    """Facile : toute œuvre de la liste commentée (curated_works.json), ou artiste ET œuvre très connus
+    (seuils de config.json). Le reste est coupé en deux moitiés sur (work_fame, artist_fame) : la plus notoire est « moyen »,
     l'autre « difficile ». À notoriété d'œuvre égale, celle de l'artiste départage."""
     def is_easy(w):
-        return w["artist_fame"] >= easy_min_artist_fame and w["work_fame"] >= easy_min_work_fame
+        return w["id"] in curated_ids or (
+            w["artist_fame"] >= easy_min_artist_fame and w["work_fame"] >= easy_min_work_fame)
 
     rest = sorted((w["work_fame"], w["artist_fame"]) for w in works if not is_easy(w))
     median = rest[len(rest) // 2] if rest else (0, 0)
     for w in works:
         key = (w["work_fame"], w["artist_fame"])
         w["difficulty"] = LEVELS[0] if is_easy(w) else LEVELS[1] if key >= median else LEVELS[2]
-        w["difficulty_source"] = "computed"
+        w["difficulty_source"] = "curated" if w["id"] in curated_ids else "computed"
 
 
 def apply_overrides(works):
@@ -526,7 +538,15 @@ def main():
     for w in dead:
         log(f"    ✗ {w['id']} {w['title']} — {w['image']}")
 
-    log("5/6 Fusion avec manual_works.json et écriture")
+    log("5/6 Fusion avec curated_works.json et manual_works.json, écriture")
+    # Les œuvres de la liste commentée échappent aux plafonds. En cas de même id, l'œuvre déjà retenue gagne.
+    taken = {w["id"] for w in selected}
+    curated = [w for w in load_curated() if w["id"] not in taken]
+    log(f"  curated_works.json : {len(curated)} œuvres ajoutées ({len(load_curated()) - len(curated)} déjà présentes)")
+    for w in curated:
+        if w["movement"] not in movement_names:
+            movement_names.append(w["movement"])
+    selected = selected + curated
     for w in manual:
         info = licenses.get(w["commons_file"], {})
         w["image_license"], w["image_credit"] = info.get("license"), info.get("credit")
@@ -543,7 +563,10 @@ def main():
     log("6/6 Notoriété et difficulté" + (" (avec vues Wikipédia)" if args.pageviews else ""))
     add_fame(selected, args.pageviews)
     easy = cfg["difficulty"]
-    assign_levels(selected, easy["easy_min_artist_fame"], easy["easy_min_work_fame"])
+    # Les œuvres de la liste sont connues par construction : toutes en facile (même celles déjà présentes
+    # sous un autre état dans works.json). difficulty_overrides.json s'applique ensuite.
+    curated_ids = {w["id"] for w in load_curated()}
+    assign_levels(selected, easy["easy_min_artist_fame"], easy["easy_min_work_fame"], curated_ids)
     apply_overrides(selected)
 
     keep = ["id", "title", "artist", "artist_id", "year", "movement", "type", "museum",

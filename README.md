@@ -23,6 +23,9 @@ Puis ouvrir <http://localhost:8000>. Un serveur est nécessaire : le navigateur 
 | `config.json` | Périmètre : mouvements, artistes supplémentaires, plafonds | non |
 | `manual_works.json` | Œuvres ajoutées à la main | **jamais** |
 | `difficulty_overrides.json` | Surcharges de difficulté par œuvre ou artiste | **jamais** |
+| `oeuvres_celebres_300.csv` | Liste d'œuvres célèbres à importer (entrée de `import_list.py`) | non |
+| `import_list.py` | Retrouve les œuvres du CSV sur Wikidata et produit `curated_works.json` | — |
+| `curated_works.json` | Œuvres importées du CSV (généré, fusionné par `fetch_works.py`) | oui, par `import_list.py` |
 | `fetch_works.py` | Génère les données | — |
 | `index.html`, `style.css`, `quiz.js`, `logic.js`, `favorites.js` | Le quiz (interface, tirage des questions, coups de cœur) | non |
 | `favorites.json` | Coups de cœur exportés (facultatif, à la racine) | non : il vient de l'export du site |
@@ -40,6 +43,26 @@ chaque image par une requête HEAD (pause de 0,3 s entre les requêtes, User-Age
 fusionne `manual_works.json` et écrit `data/works.json`. Il affiche un récapitulatif par mouvement.
 La vérification des liens rend l'exécution longue (quelques minutes) ; `--skip-link-check` la saute,
 pour le débogage uniquement.
+
+## Importer une liste d'œuvres (CSV)
+
+`import_list.py` lit `oeuvres_celebres_300.csv` (colonnes `titre_fr, title_en, artiste, annee, type, periode, lieu`),
+retrouve chaque œuvre sur Wikidata (titre français ou anglais, et artiste), et écrit `curated_works.json` :
+
+```bash
+python3 import_list.py          # produit curated_works.json
+python3 fetch_works.py          # le fusionne dans data/works.json
+```
+
+- Une ligne est écartée sans question si la correspondance est ambiguë (plusieurs versions ou fontes,
+  œuvre en série, titre homonyme chez le même artiste), si l'œuvre n'a pas d'image Commons sous licence
+  libre, ou si l'image ne répond pas à une requête HEAD.
+- `movement` vient de la colonne `periode`, tel quel : il rejoint un mouvement existant seulement s'il
+  porte exactement le même nom.
+- Ces œuvres échappent aux plafonds par mouvement et par artiste. Si une œuvre a déjà le même `id` dans
+  `works.json`, celle déjà présente est conservée.
+- La notoriété et la difficulté sont calculées comme pour les autres œuvres, puis `difficulty_overrides.json`.
+- `manual_works.json` n'est jamais modifié par ce script.
 
 ## Ajouter un mouvement
 
@@ -144,9 +167,10 @@ l'article fr.wikipedia (une requête par article, plus lent). Sans article en fr
 est nulle.
 
 **Niveaux.**
-- `facile` : l'artiste ET l'œuvre sont très connus, c'est-à-dire `artist_fame` et `work_fame` au moins
-  égaux à `easy_min_artist_fame` et `easy_min_work_fame` dans `config.json` (88 et 8 : 17 artistes,
-  72 œuvres). Dans le quiz, les trois mauvaises réponses de ce niveau sont aussi des artistes très connus.
+- `facile` : toute œuvre de la liste importée (`curated_works.json`, `difficulty_source: "curated"`), ou
+  dont l'artiste ET l'œuvre sont très connus, c'est-à-dire `artist_fame` et `work_fame` au moins
+  égaux à `easy_min_artist_fame` et `easy_min_work_fame` dans `config.json` (88 et 8).
+  Dans le quiz, les trois mauvaises réponses de ce niveau sont aussi des artistes très connus.
 - Le reste est coupé en deux moitiés sur `(work_fame, artist_fame)` (l'artiste départage les égalités
   d'œuvre) : la plus notoire est `moyen`, l'autre `difficile`. Deux œuvres de même clé ont le même niveau.
 - Pour rendre le facile plus ou moins large, ajuste les deux seuils puis régénère. Regarde le récapitulatif
