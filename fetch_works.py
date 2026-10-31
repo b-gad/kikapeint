@@ -48,6 +48,10 @@ PAGEVIEWS_API = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 VIEWS_WEIGHT = 10       # fame = sitelinks + round(VIEWS_WEIGHT * log10(1 + vues mensuelles moyennes))
 LEVELS = ("facile", "moyen", "difficile")  # du plus au moins notoire
+OUTPUT_FIELDS = ["id", "title", "artist", "artist_id", "year", "movement", "period", "type", "museum",
+                 "image", "image_page", "image_license", "image_credit",
+                 "notice", "notice_type", "artist_notice", "wikipedia_url", "work_fame", "artist_fame",
+                 "difficulty", "difficulty_source", "source"]
 
 # Licences Commons acceptées (préfixes, en minuscules)
 FREE_LICENSES = ("cc0", "cc by", "cc-by", "public domain", "pd", "attribution")
@@ -400,6 +404,47 @@ def assign_levels(works, easy_min_artist_fame, easy_min_work_fame, curated_ids=f
         w["difficulty_source"] = "curated" if w["id"] in curated_ids else "computed"
 
 
+def load_periods(cfg):
+    """Périodes de config.json (fin `null` = aujourd'hui), contiguës ; vérifie aussi la table movement → période."""
+    this_year = datetime.date.today().year
+    periods = []
+    for p in cfg["periods"]:
+        end = p["end"] if p.get("end") is not None else this_year
+        periods.append({**p, "end": end, "center": (p["start"] + end) / 2})
+    for a, b in zip(periods, periods[1:]):
+        if a["end"] != b["start"]:
+            sys.exit(f"config.json : les périodes « {a['id']} » et « {b['id']} » ne sont pas contiguës "
+                     f"({a['end']} ≠ {b['start']})")
+    ids = {p["id"] for p in periods}
+    for movement, pid in cfg["movement_periods"].items():
+        if pid not in ids:
+            sys.exit(f"config.json : movement_periods[« {movement} »] référence une période inconnue « {pid} »")
+    return periods
+
+
+def period_for(work, periods, table):
+    """Table movement → période d'abord ; sinon la période dont le centre est le plus proche de l'année.
+    Les bornes des périodes ne servent pas à attribuer les œuvres, seulement à dessiner la frise."""
+    if work["movement"] in table:
+        return table[work["movement"]]
+    return min(periods, key=lambda p: abs(p["center"] - work["year"]))["id"]
+
+
+def period_summary(works, periods, table):
+    print(f"\n{'Période':<48}{'Œuvres':>7}{'Peint.':>7}{'Sculp.':>7}{'Artistes':>9}{'facile':>8}{'moyen':>7}{'difficile':>10}")
+    print("-" * 103)
+    for p in periods + [None]:
+        ws = works if p is None else [w for w in works if w["period"] == p["id"]]
+        label = "TOTAL" if p is None else f"{p['name']} ({p['start']}-{p['end']})"
+        print(f"{label:<48}{len(ws):>7}{sum(w['type'] == 'peinture' for w in ws):>7}"
+              f"{sum(w['type'] == 'sculpture' for w in ws):>7}{len({w['artist_id'] for w in ws}):>9}"
+              + "".join(f"{sum(w['difficulty'] == lv for w in ws):>{n}}" for lv, n in zip(LEVELS, (8, 7, 10))))
+    by_year = Counter(w["movement"] for w in works if w["movement"] not in table)
+    if by_year:
+        print("\nPériode attribuée d'après l'année (mouvement absent de movement_periods) : "
+              + ", ".join(f"{m} ({n})" for m, n in by_year.most_common()))
+
+
 def apply_overrides(works):
     """difficulty_overrides.json : {"works": {id: niveau}, "artists": {id: niveau}} ; l'œuvre prime sur l'artiste."""
     if not OVERRIDES_FILE.exists():
@@ -471,11 +516,23 @@ def summary(works, movement_order):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--skip-link-check", action="store_true", help="saute la vérification HEAD des images (debug)")
+    ap.add_argument("--periods-only", action="store_true",
+                    help="recalcule seulement le champ period de data/works.json (sans réseau, aucun autre champ modifié)")
     ap.add_argument("--pageviews", action="store_true",
                     help="ajoute les vues Wikipédia fr mensuelles (12 derniers mois) à la notoriété ; plus lent")
     args = ap.parse_args()
 
     cfg = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+    periods = load_periods(cfg)
+    if args.periods_only:
+        works = json.loads(OUT_FILE.read_text(encoding="utf-8"))
+        for w in works:
+            w["period"] = period_for(w, periods, cfg["movement_periods"])
+        out = [{k: w.get(k) for k in OUTPUT_FIELDS} for w in works]
+        OUT_FILE.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        log(f"  {OUT_FILE.relative_to(ROOT)} : champ period mis à jour sur {len(out)} œuvres")
+        period_summary(out, periods, cfg["movement_periods"])
+        return
     movement_names = [m["name"] for m in cfg["movements"]]
     for x in cfg["extra_artists"]:
         if x["movement"] not in movement_names:
@@ -569,18 +626,16 @@ def main():
     assign_levels(selected, easy["easy_min_artist_fame"], easy["easy_min_work_fame"], curated_ids)
     apply_overrides(selected)
 
-    keep = ["id", "title", "artist", "artist_id", "year", "movement", "type", "museum",
-            "image", "image_page", "image_license", "image_credit",
-            "notice", "notice_type", "artist_notice", "wikipedia_url", "work_fame", "artist_fame",
-            "difficulty", "difficulty_source", "source"]
     for w in selected:
         w["image_page"] = image_page(w["commons_file"])
+        w["period"] = period_for(w, periods, cfg["movement_periods"])
     selected.sort(key=lambda w: (movement_names.index(w["movement"]), w["artist"], w["year"]))
-    out = [{k: w.get(k) for k in keep} for w in selected]
+    out = [{k: w.get(k) for k in OUTPUT_FIELDS} for w in selected]
     OUT_FILE.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     log(f"  {OUT_FILE.relative_to(ROOT)} : {len(out)} œuvres")
 
     summary(out, movement_names)
+    period_summary(out, periods, cfg["movement_periods"])
 
 
 if __name__ == "__main__":

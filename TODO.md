@@ -5,7 +5,7 @@
 1. **Agrandir la base de données** : ajouter de nouveaux mouvements et de nouveaux artistes via
    `config.json` (`movements`, `extra_artists`), puis relancer `python3 fetch_works.py`.
 2. **Changer la direction artistique** : le rendu actuel fait trop « généré par IA ».
-3. **Ajouter des curseurs de filtre à l'accueil** : choix du style (mouvement) et choix de la période.
+3. **Ajouter des curseurs de filtre à l'accueil** : ~~choix de la période~~ (fait : frise chronologique) ; reste le choix du style (mouvement).
 4. ~~Ajouter un bouton « Quitter » accessible au milieu d'une partie.~~ Fait : croix en haut à droite de l'écran de question.
 
 ## Plus tard

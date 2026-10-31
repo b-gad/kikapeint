@@ -42,8 +42,8 @@ a:hover { color: var(--accent); text-decoration-thickness: 2px; }
 
 /* --- Titres ---------------------------------------------------------------- */
 .brand {
-  margin: 0 0 56px; text-align: center; font-weight: normal;
-  font-size: clamp(3rem, 7vw, 5.5rem); letter-spacing: .04em; color: var(--accent);
+  margin: 0 0 28px; text-align: center; font-weight: normal;
+  font-size: clamp(3rem, 6vw, 4.8rem); letter-spacing: .04em; color: var(--accent);
 }
 .page-title { margin: 0; font-weight: normal; font-size: clamp(2rem, 3.4vw, 3rem); color: var(--accent); }
 
@@ -57,7 +57,10 @@ a:hover { color: var(--accent); text-decoration-thickness: 2px; }
   text-align: center; line-height: 1.25; font-size: 1.2rem;
   cursor: pointer;
 }
-.bubble.big { min-height: 220px; font-size: 2rem; }
+.bubble.big { min-height: 190px; font-size: 2rem; flex-direction: column; gap: 6px; }
+.bubble.big:disabled { opacity: .4; cursor: not-allowed; }
+.mode-note { font-size: .8rem; color: var(--muted); }
+.mode-note:empty { display: none; }
 .bubble:hover:not(:disabled), .bubble:focus-visible { border-color: var(--accent); background: var(--hover-bg); }
 .bubble:disabled { cursor: default; }
 .bubble.good { background: var(--good); border-color: var(--good); color: #fff; }
@@ -79,17 +82,46 @@ a:hover { color: var(--accent); text-decoration-thickness: 2px; }
 
 /* --- Accueil ----------------------------------------------------------------- */
 #app[data-screen="home"] {
-  min-height: 100dvh; max-width: 1400px;
+  min-height: 100dvh; max-width: 1600px;
   display: flex; flex-direction: column; justify-content: center;
 }
 .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
-.page-links { display: flex; justify-content: center; gap: 36px; margin-top: 64px; }
+.page-links { display: flex; justify-content: center; gap: 36px; margin-top: 36px; }
 .page-link {
   padding: 8px 12px; background: none; border: 0; border-radius: 8px;
   color: var(--muted); font-size: .95rem;
   text-decoration: underline; text-underline-offset: 4px; cursor: pointer;
 }
 .page-link:hover, .page-link:focus-visible { color: var(--fg); background: var(--accent-deep); }
+
+/* --- Frise chronologique (accueil) ------------------------------------------- */
+.timeline-scroll { overflow-x: auto; padding-bottom: 4px; }
+.timeline { position: relative; min-width: 1100px; }
+.periods { display: flex; list-style: none; margin: 0; padding: 0; }
+.periods li { flex: 0 0 auto; min-width: 0; display: flex; }
+.period {
+  flex: 1; min-width: 0; margin: 0 2px; padding: 8px 3px; min-height: 92px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: var(--bubble); border: 2px solid var(--bubble-line); border-radius: 12px;
+  text-align: center; line-height: 1.2; cursor: pointer;
+  hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word;
+}
+.period-name { font-size: .68rem; }
+.period-dates { font-size: .64rem; color: var(--muted); }
+.period:hover:not(:disabled), .period:focus-visible { border-color: var(--accent); background: var(--hover-bg); }
+.period[aria-pressed="true"] { background: var(--accent-deep); border-color: var(--accent); }
+.period[aria-pressed="true"] .period-dates { color: var(--fg); }
+.period[aria-pressed="true"]:hover, .period[aria-pressed="true"]:focus-visible { background: var(--accent); }
+.period:disabled { opacity: .4; cursor: not-allowed; }
+.ticks { position: relative; height: 28px; margin-top: 6px; }
+.tick {
+  position: absolute; top: 0; padding-top: 10px; transform: translateX(-50%);
+  font-size: .75rem; color: var(--muted);
+}
+.tick::before { content: ""; position: absolute; top: 0; left: 50%; height: 7px; border-left: 1px solid var(--bubble-line); }
+.tick.first { transform: none; }
+.tick.first::before { left: 0; }
+.period-count { margin: 6px 0 26px; text-align: center; font-size: .9rem; color: var(--muted); }
 
 /* --- Question ---------------------------------------------------------------- */
 .dots { display: flex; justify-content: center; gap: 10px; list-style: none; margin: 0; padding: 0; }

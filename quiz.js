@@ -2,6 +2,8 @@
 (function () {
   const Q = QuizLogic;
   const STORAGE_KEY = "kikapeint:v1";
+  const PERIODS_KEY = "kikapeint:periods:v1";
+  const TICK_YEARS = [1400, 1600, 1800, 1900, 2000];
   const MODE_LABELS = { facile: "Facile", moyen: "Moyen", difficile: "Difficile", mixte: "Mixte" };
   const MAX_CREDIT = 110;
   const HEART_PATH = "M12 21s-7.5-4.6-9.6-9.2C.9 8.2 3 4.5 6.6 4.5c2 0 3.5 1.1 4.4 2.5.9-1.4 2.4-2.5 4.4-2.5 3.6 0 5.7 3.7 4.2 7.3C19.5 16.4 12 21 12 21z";
@@ -12,6 +14,8 @@
   let index = null;
   let game = null;
   let screenToken = 0; // invalide les rappels (erreur d'image) d'un écran déjà quitté
+  let periodDefs = [];            // périodes de config.json (vide si le fichier est introuvable)
+  let selectedPeriods = new Set(); // période(s) choisie(s) ; vide = toutes
   const repWorkCache = new Map();
 
   function el(tag, attrs, ...children) {
@@ -81,15 +85,99 @@
   }
 
   // --- Accueil -----------------------------------------------------------------
+  // Nombre d'œuvres par identifiant de période, d'après works.json (rien n'est codé en dur).
+  function periodCounts() {
+    const counts = new Map();
+    for (const w of index.works) counts.set(w.period, (counts.get(w.period) || 0) + 1);
+    return counts;
+  }
+
+  // Sélection mémorisée (localStorage, peut être indisponible) ; les périodes devenues vides ou inconnues sont ignorées.
+  function loadSelection() {
+    const counts = periodCounts();
+    const known = new Set(periodDefs.map((p) => p.id));
+    try {
+      const saved = JSON.parse(localStorage.getItem(PERIODS_KEY));
+      if (Array.isArray(saved)) return new Set(saved.filter((id) => known.has(id) && counts.get(id) > 0));
+    } catch (e) { /* stockage indisponible ou illisible : toutes les périodes */ }
+    return new Set();
+  }
+
+  function saveSelection() {
+    try { localStorage.setItem(PERIODS_KEY, JSON.stringify([...selectedPeriods])); } catch (e) { /* ignoré */ }
+  }
+
+  function frenchCount(n, word) { return `${n} ${word}${n > 1 ? "s" : ""}`; }
+
+  // Frise chronologique : une case par période, largeur proportionnelle à la durée (6 % minimum).
+  function buildTimeline(counts, onToggle) {
+    const layout = Q.timelineLayout(periodDefs, new Date().getFullYear());
+    const buttons = new Map();
+    const cases = layout.map((p) => {
+      const empty = !counts.get(p.id);
+      const dates = `${p.start} – ${periodDefs.find((d) => d.id === p.id).end == null ? "aujourd'hui" : p.end}`;
+      const button = el("button", {
+        class: "period", "aria-pressed": "false",
+        "aria-label": `${p.name}, ${dates}` + (empty ? ", bientôt" : ""),
+      }, el("span", { class: "period-name" }, p.name), el("span", { class: "period-dates" }, dates));
+      if (empty) { button.disabled = true; button.title = "Bientôt"; }
+      else button.addEventListener("click", () => onToggle(p.id));
+      buttons.set(p.id, button);
+      return el("li", { style: `flex-basis:${(p.width * 100).toFixed(4)}%` }, button);
+    });
+    const ticks = TICK_YEARS.map((year) => ({ year, pos: Q.yearPosition(layout, year) })).filter((t) => t.pos != null)
+      .map((t) => el("span", { class: "tick" + (t.pos === 0 ? " first" : ""), style: `left:${(t.pos * 100).toFixed(3)}%` }, String(t.year)));
+    const node = el("div", { class: "timeline-scroll" },
+      el("div", { class: "timeline", role: "group", "aria-label": "Périodes artistiques" },
+        el("ul", { class: "periods" }, ...cases),
+        el("div", { class: "ticks", "aria-hidden": "true" }, ...ticks)));
+    return { node, buttons };
+  }
+
   function showHome() {
+    const counts = periodCounts();
+    selectedPeriods = loadSelection();
+    const count = el("p", { class: "period-count", "aria-live": "polite" });
+    const timeline = periodDefs.length ? buildTimeline(counts, toggle) : null;
+    const modes = Object.keys(MODE_LABELS).map((m) => {
+      const note = el("small", { class: "mode-note" });
+      const button = el("button", { class: "bubble big", onclick: () => start(m) }, el("span", {}, MODE_LABELS[m]), note);
+      return { m, button, note };
+    });
+
+    function toggle(id) {
+      if (selectedPeriods.has(id)) selectedPeriods.delete(id); else selectedPeriods.add(id);
+      saveSelection();
+      refresh();
+    }
+
+    // Met à jour cases, compteur et bulles de mode, sans reconstruire l'écran (le focus reste sur la case).
+    function refresh() {
+      const selection = selectedPeriods.size ? selectedPeriods : null;
+      if (timeline) {
+        for (const [id, button] of timeline.buttons) {
+          button.setAttribute("aria-pressed", String(selectedPeriods.has(id)));
+        }
+      }
+      const eligible = Q.eligibleCounts(index, selection);
+      const total = eligible.facile + eligible.moyen + eligible.difficile;
+      count.textContent = frenchCount(total, "œuvre") + (selection ? " sélectionnée" + (total > 1 ? "s" : "") : "");
+      for (const { m, button, note } of modes) {
+        const ok = Q.modeAvailable(m, eligible);
+        button.disabled = !ok;
+        note.textContent = ok ? "" : "Pas assez d'œuvres";
+      }
+    }
+
     show("home",
       el("h1", { class: "brand" }, "kikapeint"),
-      el("div", { class: "modes" },
-        ...Object.keys(MODE_LABELS).map((m) =>
-          el("button", { class: "bubble big", onclick: () => start(m) }, MODE_LABELS[m]))),
+      ...(timeline ? [timeline.node] : []),
+      count,
+      el("div", { class: "modes" }, ...modes.map((x) => x.button)),
       el("nav", { class: "page-links" },
         el("button", { class: "page-link", onclick: () => showFavorites() }, "Mes coups de cœur"),
         el("button", { class: "page-link", onclick: showAbout }, "À propos")));
+    refresh();
   }
 
   // --- À propos ----------------------------------------------------------------
@@ -106,7 +194,7 @@
   }
 
   function start(mode) {
-    game = Q.newGame(mode);
+    game = Q.newGame(mode, selectedPeriods);
     game.results = []; // { workId, ok }
     showQuestion();
   }
@@ -354,9 +442,15 @@
     .then((data) => { if (data) fav.setRemote(data); })
     .catch(() => {});
 
+  // config.json donne les périodes de la frise ; sans lui, le quiz marche, simplement sans frise.
+  const configLoaded = fetch("config.json")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((cfg) => { periodDefs = (cfg && Array.isArray(cfg.periods)) ? cfg.periods : []; })
+    .catch(() => {});
+
   fetch("data/works.json")
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-    .then((works) => { index = Q.buildIndex(works); return remoteFavorites; })
+    .then((works) => { index = Q.buildIndex(works); return Promise.all([remoteFavorites, configLoaded]); })
     .then(showHome)
     .catch((e) => show("error", el("p", { class: "error" }, "Impossible de charger les œuvres (" + e.message + ").")));
 })();

@@ -156,6 +156,32 @@ Au chargement, le site lit `favorites.json` s'il existe et le fusionne avec le `
 Format : `{"version": 1, "works": [{"id", "note", "added", "label"}], "artists": [...]}`. `label` n'est
 là que pour la lecture humaine et est ignoré au chargement.
 
+## Périodes artistiques
+
+Chaque œuvre a un champ `period` (identifiant d'une période définie dans `config.json`, clé `periods` :
+`id`, `name`, `start`, `end`, `end: null` = aujourd'hui). Les bornes servent **uniquement à dessiner une frise**
+(périodes contiguës, sans chevauchement : le script vérifie la contiguïté) ; elles n'attribuent pas les œuvres.
+
+Attribution, dans cet ordre :
+1. la table `movement_periods` de `config.json` (mouvement → identifiant de période) ;
+2. sinon (mouvement absent de la table, ou ambigu comme `Expressionnisme`), la période dont le **centre**
+   est le plus proche de l'année de l'œuvre. Les sculptures suivent les mêmes règles.
+
+Le champ est posé à chaque génération. Pour le recalculer après avoir modifié les périodes ou la table, sans
+réseau et sans toucher aux autres champs de `data/works.json` :
+
+```bash
+python3 fetch_works.py --periods-only
+```
+
+Le script affiche aussi un tableau par période (œuvres, peintures/sculptures, artistes, répartition par niveau).
+L'accueil affiche une frise de 12 cases (une par période, largeur proportionnelle à la durée, 6 % minimum) :
+un clic active ou désactive une période (sélection multiple, aucune = toutes). Une période sans œuvre dans
+`works.json` est grisée (« Bientôt ») et devient cliquable dès qu'une œuvre lui est rattachée. Seules les œuvres
+des périodes choisies sont posées ; les distracteurs viennent d'abord de ces périodes, puis le repli habituel
+s'applique. Un mode est grisé s'il y a moins de 10 œuvres éligibles (Mixte : 4 + 3 + 3). La sélection est
+mémorisée dans le `localStorage` (clé `kikapeint:periods:v1`).
+
 ## Difficulté
 
 Chaque œuvre reçoit un niveau `facile`, `moyen` ou `difficile`, calculé à chaque génération.
@@ -208,6 +234,7 @@ python3 fetch_works.py --pageviews   # notoriété avec vues Wikipédia
 | `image_page` | page du fichier sur Commons |
 | `image_license`, `image_credit` | licence et auteur de l'image |
 | `notice` | texte court en français tiré de Wikipédia |
+| `period` | identifiant de la période artistique (voir « Périodes artistiques ») |
 | `notice_type` | `work` (article de l'œuvre) ou `artist` (article de l'artiste, à défaut) |
 | `artist_notice` | présentation de l'artiste (intro de son article fr), seulement quand `notice` parle de l'œuvre ; sinon `null` |
 | `work_fame`, `artist_fame` | scores de notoriété (voir « Difficulté ») |

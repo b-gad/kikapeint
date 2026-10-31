@@ -18,5 +18,48 @@
   "difficulty": {
     "easy_min_artist_fame": 88,
     "easy_min_work_fame": 8
+  },
+  "periods": [
+    {"id": "renaissance",              "name": "Renaissance",                      "start": 1400, "end": 1550},
+    {"id": "baroque",                   "name": "Baroque et Siècle d'or",           "start": 1550, "end": 1720},
+    {"id": "rococo",                    "name": "Rococo et Lumières",               "start": 1720, "end": 1780},
+    {"id": "neoclassique_romantisme",   "name": "Néoclassicisme et Romantisme",     "start": 1780, "end": 1840},
+    {"id": "realisme",                  "name": "Réalisme",                         "start": 1840, "end": 1865},
+    {"id": "impressionnisme",           "name": "Impressionnisme",                  "start": 1865, "end": 1880},
+    {"id": "post_impressionnisme",      "name": "Post-impressionnisme et Symbolisme", "start": 1880, "end": 1900},
+    {"id": "fauvisme_expressionnisme",  "name": "Fauvisme et Expressionnisme",      "start": 1900, "end": 1905},
+    {"id": "cubisme_avant_gardes",      "name": "Cubisme et avant-gardes",          "start": 1905, "end": 1915},
+    {"id": "dada_surrealisme",          "name": "Dada et Surréalisme",              "start": 1915, "end": 1945},
+    {"id": "apres_guerre_pop",          "name": "Après-guerre et Pop art",          "start": 1945, "end": 1970},
+    {"id": "contemporain",              "name": "Art contemporain",                 "start": 1970, "end": null}
+  ],
+  "movement_periods": {
+    "Renaissance": "renaissance",
+    "Baroque": "baroque",
+    "Siècle d'or néerlandais": "baroque",
+    "Rococo": "rococo",
+    "Préromantisme": "rococo",
+    "Néoclassicisme": "neoclassique_romantisme",
+    "Romantisme": "neoclassique_romantisme",
+    "Réalisme": "realisme",
+    "Préraphaélisme": "realisme",
+    "Impressionnisme": "impressionnisme",
+    "Post-impressionnisme": "post_impressionnisme",
+    "Symbolisme": "post_impressionnisme",
+    "Naïf": "post_impressionnisme",
+    "Fauvisme": "fauvisme_expressionnisme",
+    "Cubisme": "cubisme_avant_gardes",
+    "Abstraction": "cubisme_avant_gardes",
+    "Futurisme": "cubisme_avant_gardes",
+    "Dada": "dada_surrealisme",
+    "Surréalisme": "dada_surrealisme",
+    "Métaphysique": "dada_surrealisme",
+    "Expressionnisme abstrait": "apres_guerre_pop",
+    "Pop art": "apres_guerre_pop",
+    "Art moderne britannique": "apres_guerre_pop",
+    "Spatialisme": "apres_guerre_pop",
+    "Néo-expressionnisme": "contemporain",
+    "Street art": "contemporain",
+    "Art contemporain": "contemporain"
   }
 }
