@@ -7,6 +7,9 @@
 2. **Changer la direction artistique** : le rendu actuel fait trop « généré par IA ».
 3. **Ajouter des curseurs de filtre à l'accueil** : ~~choix de la période~~ (fait : frise chronologique) ; reste le choix du style (mouvement).
 4. ~~Ajouter un bouton « Quitter » accessible au milieu d'une partie.~~ Fait : croix en haut à droite de l'écran de question.
+5. **Indiquer la période de la frise de l'œuvre au moment de la réponse** : dans la carte de notice, afficher
+   à quelle période de la frise appartient l'œuvre (champ `period`), avec son nom, une courte explication
+   de la période et un lien Wikipédia vers la page de la période.
 
 ## Plus tard
 
