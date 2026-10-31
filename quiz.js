@@ -179,7 +179,12 @@
       el("figure", { class: "artwork" }, el("div", { class: "frame" }, img), caption));
     const side = el("div", { class: "stage-side" },
       ...[el("div", { class: "grid" }, ...buttons), hearts, notice, next].filter(Boolean));
-    show("question", dots, el("div", { class: "stage" }, art, side));
+    // Croix : retour au menu à tout moment, même en milieu de partie.
+    const quit = el("button", {
+      class: "quit", "aria-label": "Quitter la partie et revenir au menu", title: "Quitter la partie",
+      onclick: showHome,
+    }, "×");
+    show("question", quit, dots, el("div", { class: "stage" }, art, side));
   }
 
   // Deux cœurs : l'œuvre (par id) et l'artiste (par artist_id), chacun avec une note facultative.

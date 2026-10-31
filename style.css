@@ -159,6 +159,16 @@ a:hover { color: var(--accent); text-decoration-thickness: 2px; }
 .notice-label { display: block; margin-bottom: 2px; color: var(--accent); font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; }
 .notice-links { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px !important; }
 
+/* Croix « quitter la partie » : posée dans le coin, hors de la mise en page de la question */
+.quit {
+  position: fixed; top: 14px; right: 18px; z-index: 10;
+  width: 44px; height: 44px; padding: 0 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bubble); border: 2px solid var(--bubble-line); border-radius: 50%;
+  font-size: 1.9rem; line-height: 1; color: var(--muted); cursor: pointer;
+}
+.quit:hover, .quit:focus-visible { border-color: var(--accent); background: var(--hover-bg); color: var(--fg); }
+
 /* --- Fin de partie ------------------------------------------------------------ */
 #app[data-screen="end"] {
   min-height: 100dvh; max-width: 1180px;
