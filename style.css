@@ -274,14 +274,14 @@ a:hover { color: var(--accent); text-decoration-thickness: 2px; }
     height: 100dvh; max-width: none; padding: 18px 48px 24px;
     display: grid; grid-template-rows: auto minmax(0, 1fr); row-gap: 14px;
   }
-  .stage { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(380px, 1fr); column-gap: 48px; min-height: 0; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(440px, 1fr); column-gap: 40px; min-height: 0; }
   /* Tout est ancré en haut et la place de la légende est réservée : rien ne bouge quand la réponse apparaît. */
   .stage-art { min-height: 0; display: flex; justify-content: center; align-items: flex-start; padding-top: 6px; }
   .frame img { max-height: calc(100dvh - 270px); }
   .caption { min-height: 84px; }
   .caption[hidden] { display: flex; visibility: hidden; }
   .stage-side { min-height: 0; justify-content: flex-start; }
-  .grid { grid-auto-rows: minmax(118px, auto); }
+  .grid { grid-auto-rows: minmax(78px, auto); }
   .notice { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
   .next.sticky { flex-shrink: 0; }
   #app[data-screen="favorites"] { height: 100dvh; }

@@ -20,18 +20,18 @@
     "easy_min_work_fame": 8
   },
   "periods": [
-    {"id": "renaissance",              "name": "Renaissance",                      "start": 1400, "end": 1550},
-    {"id": "baroque",                   "name": "Baroque et Siècle d'or",           "start": 1550, "end": 1720},
-    {"id": "rococo",                    "name": "Rococo et Lumières",               "start": 1720, "end": 1780},
-    {"id": "neoclassique_romantisme",   "name": "Néoclassicisme et Romantisme",     "start": 1780, "end": 1840},
-    {"id": "realisme",                  "name": "Réalisme",                         "start": 1840, "end": 1865},
-    {"id": "impressionnisme",           "name": "Impressionnisme",                  "start": 1865, "end": 1880},
-    {"id": "post_impressionnisme",      "name": "Post-impressionnisme et Symbolisme", "start": 1880, "end": 1900},
-    {"id": "fauvisme_expressionnisme",  "name": "Fauvisme et Expressionnisme",      "start": 1900, "end": 1905},
-    {"id": "cubisme_avant_gardes",      "name": "Cubisme et avant-gardes",          "start": 1905, "end": 1915},
-    {"id": "dada_surrealisme",          "name": "Dada et Surréalisme",              "start": 1915, "end": 1945},
-    {"id": "apres_guerre_pop",          "name": "Après-guerre et Pop art",          "start": 1945, "end": 1970},
-    {"id": "contemporain",              "name": "Art contemporain",                 "start": 1970, "end": null}
+    {"id": "renaissance",              "name": "Renaissance",                      "start": 1400, "end": 1550, "description": "Retour aux modèles de l'Antiquité et naissance de la perspective : les artistes italiens, puis européens, placent l'humain et l'observation de la nature au centre de la peinture et de la sculpture.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Renaissance"},
+    {"id": "baroque",                   "name": "Baroque et Siècle d'or",           "start": 1550, "end": 1720, "description": "Un art de la mise en scène : mouvement, contrastes de lumière et émotion intense, au service des cours, de l'Église et, aux Pays-Bas, d'une bourgeoisie qui commande portraits et scènes du quotidien.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Baroque"},
+    {"id": "rococo",                    "name": "Rococo et Lumières",               "start": 1720, "end": 1780, "description": "Un style léger et raffiné de l'aristocratie du XVIIIe siècle : couleurs claires, courbes, scènes galantes. Les Lumières y ajoutent le goût de la raison et de la nature.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Rococo"},
+    {"id": "neoclassique_romantisme",   "name": "Néoclassicisme et Romantisme",     "start": 1780, "end": 1840, "description": "Deux réactions opposées : le néoclassicisme revient à la rigueur et aux sujets antiques, le romantisme met en avant l'émotion, l'individu et la force de la nature.", "wikipedia_url": "https://fr.wikipedia.org/wiki/N%C3%A9oclassicisme"},
+    {"id": "realisme",                  "name": "Réalisme",                         "start": 1840, "end": 1865, "description": "Peindre le monde tel qu'il est : paysans, ouvriers, scènes de la vie ordinaire, sans idéalisation, à l'opposé des sujets nobles de l'académie.", "wikipedia_url": "https://fr.wikipedia.org/wiki/R%C3%A9alisme_(peinture)"},
+    {"id": "impressionnisme",           "name": "Impressionnisme",                  "start": 1865, "end": 1880, "description": "Peindre sur le motif et saisir l'instant : touches visibles, lumière changeante, paysages et vie moderne. Le mouvement naît à Paris avec l'exposition de 1874.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Impressionnisme"},
+    {"id": "post_impressionnisme",      "name": "Post-impressionnisme et Symbolisme", "start": 1880, "end": 1900, "description": "Des artistes qui prolongent puis dépassent l'impressionnisme : structure, couleur expressive ou monde intérieur (Cézanne, Van Gogh, Gauguin, Seurat), et le symbolisme, tourné vers le rêve et les idées.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Post-impressionnisme"},
+    {"id": "fauvisme_expressionnisme",  "name": "Fauvisme et Expressionnisme",      "start": 1900, "end": 1905, "description": "Des couleurs pures, appliquées sans souci du réalisme : le fauvisme éclate au Salon d'automne de 1905, tandis que l'expressionnisme privilégie l'émotion à l'apparence.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Fauvisme"},
+    {"id": "cubisme_avant_gardes",      "name": "Cubisme et avant-gardes",          "start": 1905, "end": 1915, "description": "Le cubisme (Picasso, Braque) décompose les formes en facettes ; autour de lui, futurisme, abstraction et autres avant-gardes rompent avec la représentation traditionnelle.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Cubisme"},
+    {"id": "dada_surrealisme",          "name": "Dada et Surréalisme",              "start": 1915, "end": 1945, "description": "Entre-deux-guerres : Dada se moque de l'art établi, le surréalisme explore le rêve et l'inconscient. S'y ajoutent la peinture métaphysique et les premiers pas de l'abstraction pure.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Surr%C3%A9alisme"},
+    {"id": "apres_guerre_pop",          "name": "Après-guerre et Pop art",          "start": 1945, "end": 1970, "description": "Après 1945, le centre de l'art passe à New York : expressionnisme abstrait, puis Pop art, qui puise dans la publicité, la bande dessinée et la consommation de masse.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Pop_art"},
+    {"id": "contemporain",              "name": "Art contemporain",                 "start": 1970, "end": null, "description": "Depuis les années 1970, l'art multiplie les formes et les médias : néo-expressionnisme, street art, installations. Il n'y a plus de style dominant.", "wikipedia_url": "https://fr.wikipedia.org/wiki/Art_contemporain"}
   ],
   "movement_periods": {
     "Renaissance": "renaissance",

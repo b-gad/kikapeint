@@ -115,7 +115,7 @@
     const buttons = new Map();
     const cases = layout.map((p) => {
       const empty = !counts.get(p.id);
-      const dates = `${p.start} – ${periodDefs.find((d) => d.id === p.id).end == null ? "aujourd'hui" : p.end}`;
+      const dates = periodDates(periodDefs.find((d) => d.id === p.id));
       const button = el("button", {
         class: "period", "aria-pressed": "false",
         "aria-label": `${p.name}, ${dates}` + (empty ? ", bientôt" : ""),
@@ -310,15 +310,26 @@
     return el("div", { class: "heart-row" }, button, note);
   }
 
+  function periodDates(p) {
+    return `${p.start} – ${p.end == null ? "aujourd'hui" : p.end}`;
+  }
+
   function noticeCard(work) {
-    if (!work.notice && !work.artist_notice) return null;
+    const period = periodDefs.find((p) => p.id === work.period);
+    if (!work.notice && !work.artist_notice && !period) return null;
     const arts = "https://artsandculture.google.com/search?q=" + encodeURIComponent(`${work.title} ${work.artist}`);
-    const links = [work.wikipedia_url && link("Wikipédia", work.wikipedia_url), link("Google Arts & Culture", arts)];
+    const links = [work.wikipedia_url && link("Wikipédia", work.wikipedia_url), link("Google Arts & Culture", arts),
+      period && period.wikipedia_url && link("La période sur Wikipédia", period.wikipedia_url)];
     const paragraphs = [];
     if (work.notice) paragraphs.push(el("p", {}, work.notice));
     if (work.artist_notice) {
       paragraphs.push(el("p", { class: "notice-artist" },
         el("span", { class: "notice-label" }, "L'artiste"), work.artist_notice));
+    }
+    if (period) {
+      paragraphs.push(el("p", { class: "notice-artist notice-period" },
+        el("span", { class: "notice-label" }, `Période : ${period.name} (${periodDates(period)})`),
+        period.description || ""));
     }
     return el("aside", { class: "notice", hidden: "" }, ...paragraphs,
       el("p", { class: "notice-links" }, ...links.filter(Boolean)));

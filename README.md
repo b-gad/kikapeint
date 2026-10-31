@@ -182,6 +182,9 @@ des périodes choisies sont posées ; les distracteurs viennent d'abord de ces p
 s'applique. Un mode est grisé s'il y a moins de 10 œuvres éligibles (Mixte : 4 + 3 + 3). La sélection est
 mémorisée dans le `localStorage` (clé `kikapeint:periods:v1`).
 
+Après la réponse, la carte de notice indique la période de l'œuvre (nom, dates, courte explication, lien
+Wikipédia). Le texte et le lien viennent de `description` et `wikipedia_url` de chaque période dans `config.json`.
+
 ## Difficulté
 
 Chaque œuvre reçoit un niveau `facile`, `moyen` ou `difficile`, calculé à chaque génération.
