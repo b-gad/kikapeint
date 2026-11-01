@@ -130,6 +130,9 @@ def main():
     elif not args.rebuild:
         ap.error("donne un fichier image, ou --rebuild")
 
+    manual = json.loads(fw.MANUAL_FILE.read_text(encoding="utf-8")) if fw.MANUAL_FILE.exists() else []
+    seen = {e["id"] for e in entries}
+    entries = entries + [e for e in manual if e.get("image_local") and e["id"] not in seen]
     public = json.loads(fw.OUT_FILE.read_text(encoding="utf-8"))
     built = [build(e, public, cfg, periods) for e in entries]
     OUT_FILE.write_text(json.dumps([{k: w.get(k) for k in OUTPUT_FIELDS} for w in built], ensure_ascii=False, indent=1) + "\n",

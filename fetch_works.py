@@ -293,6 +293,8 @@ def load_manual(licenses_needed):
     entries = json.loads(MANUAL_FILE.read_text(encoding="utf-8"))
     works = []
     for i, e in enumerate(entries, 1):
+        if e.get("image_local"):  # image fournie par l'utilisateur : traitée par add_local_image.py (data/works_private.json)
+            continue
         missing = [k for k in ("title", "artist", "year", "movement", "image") if not e.get(k)]
         if missing:
             log(f"  ⚠ manual_works.json #{i} ignorée, champs manquants : {', '.join(missing)}")

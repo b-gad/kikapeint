@@ -21,7 +21,7 @@ Puis ouvrir <http://localhost:8000>. Un serveur est nécessaire : le navigateur 
 | Fichier | Rôle | Modifié par le script ? |
 |---|---|---|
 | `config.json` | Périmètre : mouvements, artistes supplémentaires, plafonds | non |
-| `manual_works.json` | Œuvres ajoutées à la main | **jamais** |
+| `manual_works.json` | Œuvres ajoutées à la main ; `scripts/capture_works.py` y ajoute celles qu'il capture | **jamais** par `fetch_works.py` |
 | `difficulty_overrides.json` | Surcharges de difficulté par œuvre ou artiste | **jamais** |
 | `oeuvres_celebres_300.csv` | Liste d'œuvres célèbres à importer (entrée de `import_list.py`) | non |
 | `import_list.py` | Retrouve les œuvres du CSV sur Wikidata et produit `curated_works.json` | — |
@@ -134,6 +134,35 @@ fichier d'origine n'est jamais modifié). L'œuvre reçoit `image_local`, `image
 et `private: true`, puis est listée dans `private_works.json` et `data/works_private.json`, que le quiz charge s'il
 existe. `images_local/`, `private_works.json` et `data/works_private.json` sont suivis par git : après un commit
 et un push, ces œuvres apparaissent aussi sur le site en ligne. `--rebuild` régénère `data/works_private.json`.
+
+## Capturer les œuvres d'une page web (« les 10 tableaux les plus connus de X »)
+
+`scripts/capture_works.py` ouvre une page dans Chromium (fenêtre visible, 1920 × 1080, échelle ×2), ferme les
+bandeaux, fait défiler la page, repère les œuvres (images du corps de l'article de 300 px de large ou plus, avec un
+intertitre, une légende ou un texte alternatif) et capture chaque image seule. Titre nettoyé (numéros et dates entre
+parenthèses retirés, l'année est gardée), image enregistrée dans `images_local/<artiste>-<titre>.jpg` (JPEG de 1600 px
+maximum). L'œuvre est cherchée sur Wikidata (identifiant, année, musée, mouvement) ; sinon son identifiant est
+`local:<artiste>-<titre>` et son année est lue sur la page. L'entrée (`image_local`, `private: true`, licence
+« Non libre (usage privé) ») est ajoutée à `manual_works.json`. Les œuvres déjà présentes sont ignorées, une capture
+vide ou en cours de chargement est retentée une fois, puis l'œuvre est passée.
+
+Installation dans un environnement isolé, hors du dépôt :
+
+```bash
+python3 -m venv ~/.venvs/kikapeint-capture
+~/.venvs/kikapeint-capture/bin/pip install playwright pillow requests
+~/.venvs/kikapeint-capture/bin/python -m playwright install chromium
+```
+
+Usage (couples « URL|Artiste » ; l'artiste est facultatif, il est alors déduit du titre de la page) :
+
+```bash
+~/.venvs/kikapeint-capture/bin/python scripts/capture_works.py "https://.../10-tableaux-de-picasso|Pablo Picasso"
+python3 add_local_image.py --rebuild     # produit data/works_private.json (notices Wikipédia, niveaux, périodes)
+```
+
+Une ligne par page est affichée à la fin : nombre d'œuvres ajoutées et titres en échec. `add_local_image.py --rebuild`
+lit `private_works.json` et les entrées `image_local` de `manual_works.json` ; `fetch_works.py` ignore ces dernières.
 
 ## Coups de cœur
 
