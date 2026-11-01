@@ -9,7 +9,7 @@ Le mouvement (qui décide de la période, voir movement_periods dans config.json
 peuvent être imposés pour toutes les œuvres de la page ; sinon le mouvement vient de Wikidata.
 
 Sans artiste, il est déduit du titre de la page (« ... de Pablo Picasso »). Pour chaque page :
-  1. Chromium visible (1920 × 1080, échelle ×2), bandeaux fermés (refus), défilement par paliers ;
+  1. Chromium headless (1920 × 1080, échelle ×2, aucune fenêtre ; --visible pour en ouvrir une), bandeaux fermés (refus), défilement par paliers ;
   2. les œuvres sont les images du corps de l'article (≥ 300 px de large) avec un titre voisin
      (intertitre, légende ou texte alternatif) ; l'élément image est capturé seul, en grand si une visionneuse existe ;
   3. titre nettoyé (numéros et dates entre parenthèses retirés, l'année est gardée) ; image enregistrée en JPEG
@@ -46,6 +46,8 @@ import import_list as il  # noqa: E402
 MANUAL_FILE = ROOT / "manual_works.json"
 MIN_WIDTH = 300           # largeur minimale (px CSS) d'une œuvre
 MAX_SIDE = 1600
+USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+              "Chrome/124.0.0.0 Safari/537.36")
 PAUSE = 1.5               # secondes entre deux pages
 UNWANTED = re.compile(r"related|recommend|newsletter|product|sidebar|footer|header|nav|logo|avatar|author|popup|modal|cart", re.I)
 REFUSE = re.compile(r"^(tout )?(refuser|rejeter|reject( all)?|decline|continuer sans accepter|non merci)", re.I)
@@ -389,11 +391,14 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pairs", nargs="*", help="URL|Artiste (artiste facultatif : URL seule)")
     ap.add_argument("--page"), ap.add_argument("--artist")
+    ap.add_argument("--visible", action="store_true", help="ouvre une fenêtre Chromium (par défaut : headless)")
     ap.add_argument("--movement", help="mouvement imposé à toutes les œuvres (décide de la période)")
     ap.add_argument("--type", default="peinture", help="peinture (défaut) ou sculpture")
     args = ap.parse_args()
     pairs = []
     for p in args.pairs:
+        if "|" not in p and re.search(r"\s:\s", p):                 # « URL : artiste »
+            p = p.replace(" : ", "|", 1)
         url, artist, movement, wtype = (p.split("|") + ["", "", ""])[:4]
         pairs.append((url.strip(), artist.strip() or None, movement.strip() or args.movement, wtype.strip() or args.type))
     if args.page:
@@ -403,8 +408,8 @@ def main():
     known_ids, known_titles = known_keys()
     artist_cache = {}
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        ctx = browser.new_context(viewport={"width": 1920, "height": 1080}, device_scale_factor=2, locale="fr-FR")
+        browser = p.chromium.launch(headless=not args.visible)   # headless : aucune fenêtre, pas de prise de focus
+        ctx = browser.new_context(viewport={"width": 1920, "height": 1080}, device_scale_factor=2, locale="fr-FR", user_agent=USER_AGENT)
         for i, (url, artist, movement, wtype) in enumerate(pairs):
             if i:
                 time.sleep(PAUSE)

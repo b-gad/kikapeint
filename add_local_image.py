@@ -101,6 +101,7 @@ def main():
     ap.add_argument("--movement"), ap.add_argument("--qid", help="identifiant Wikidata de l'œuvre")
     ap.add_argument("--type", default="peinture"), ap.add_argument("--museum")
     ap.add_argument("--artist-id", help="identifiant Wikidata de l'artiste (pour le relier à ses autres œuvres)")
+    ap.add_argument("--no-build", action="store_true", help="enregistre l'image et l'entrée sans reconstruire (puis --rebuild une fois)")
     ap.add_argument("--rebuild", action="store_true", help="régénère seulement data/works_private.json")
     args = ap.parse_args()
 
@@ -127,6 +128,8 @@ def main():
         }
         entries = [e for e in entries if e["id"] != entry["id"]] + [entry]
         PRIVATE_FILE.write_text(json.dumps(entries, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        if args.no_build:
+            return
     elif not args.rebuild:
         ap.error("donne un fichier image, ou --rebuild")
 

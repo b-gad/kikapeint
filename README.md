@@ -137,7 +137,7 @@ et un push, ces œuvres apparaissent aussi sur le site en ligne. `--rebuild` ré
 
 ## Capturer les œuvres d'une page web (« les 10 tableaux les plus connus de X »)
 
-`scripts/capture_works.py` ouvre une page dans Chromium (fenêtre visible, 1920 × 1080, échelle ×2), ferme les
+`scripts/capture_works.py` ouvre une page dans Chromium en mode headless (aucune fenêtre, `--visible` pour en ouvrir une ; 1920 × 1080, échelle ×2), ferme les
 bandeaux, fait défiler la page, repère les œuvres (images du corps de l'article de 300 px de large ou plus, avec un
 intertitre, une légende ou un texte alternatif) et capture chaque image seule. Titre nettoyé (numéros et dates entre
 parenthèses retirés, l'année est gardée), image enregistrée dans `images_local/<artiste>-<titre>.jpg` (JPEG de 1600 px
@@ -154,7 +154,7 @@ python3 -m venv ~/.venvs/kikapeint-capture
 ~/.venvs/kikapeint-capture/bin/python -m playwright install chromium
 ```
 
-Usage (couples « URL|Artiste » ; l'artiste est facultatif, il est alors déduit du titre de la page) :
+Usage (couples « URL|Artiste » ou « URL : Artiste » ; l'artiste est facultatif, il est alors déduit du titre de la page) :
 
 ```bash
 ~/.venvs/kikapeint-capture/bin/python scripts/capture_works.py "https://.../10-tableaux-de-picasso|Pablo Picasso"
@@ -166,6 +166,9 @@ Options : `URL|Artiste|Mouvement|type` (ou `--movement`, `--type`) impose le mou
 Si la page n'est pas un article à intertitres mais une galerie (vignettes avec liens, comme WikiArt), le script ouvre
 la fiche de chaque œuvre pour capturer son image principale. Une œuvre dont l'année est inconnue (WikiArt affiche « ? »)
 est passée.
+
+Une page protégée par une vérification du navigateur (« Checking your browser… ») n'est pas contournée : elle est passée et
+signalée. Le script suppose un seul artiste par page.
 
 Une ligne par page est affichée à la fin : nombre d'œuvres ajoutées et titres en échec. `add_local_image.py --rebuild`
 lit `private_works.json` et les entrées `image_local` de `manual_works.json` ; `fetch_works.py` ignore ces dernières.
