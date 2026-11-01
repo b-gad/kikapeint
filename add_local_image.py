@@ -10,8 +10,8 @@
 - --qid (identifiant Wikidata de l'œuvre) permet de retrouver l'artiste, la notoriété et la notice Wikipédia ;
 - l'œuvre reçoit image_local, image_license « Non libre (usage privé) » et private: true ;
 - les œuvres sont listées dans private_works.json et regroupées dans data/works_private.json, que le quiz charge
-  s'il existe. images_local/, private_works.json et data/works_private.json sont ignorés par git : ces œuvres
-  restent sur cet ordinateur.
+  s'il existe. images_local/, private_works.json et data/works_private.json sont suivis par git : après un commit
+  et un push, ces œuvres apparaissent aussi sur le site en ligne.
 """
 import argparse
 import json
