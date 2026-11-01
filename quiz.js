@@ -39,6 +39,19 @@
 
   function say(text) { status.textContent = text; }
 
+  // Raccourcis de l'écran de question : 1 à 4 pour répondre, Entrée pour passer à la suite.
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || app.dataset.screen !== "question") return;
+    if (document.querySelector("dialog[open]") || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (/^[1-4]$/.test(e.key)) {
+      const b = app.querySelectorAll(".grid .bubble")[Number(e.key) - 1];
+      if (b && !b.disabled) b.click();
+    } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") {
+      const next = app.querySelector("button.next:not([hidden])");
+      if (next) next.click();
+    }
+  });
+
   function thumbUrl(url, width = 200) {
     return url.replace(/width=\d+$/, "width=" + width);
   }
@@ -244,8 +257,9 @@
     const notice = noticeCard(work); // null sans notice : pas de carte vide
     const hearts = heartsBlock(work);
 
-    const buttons = q.choices.map((c) =>
-      el("button", { class: "bubble", onclick: () => answer(c) }, c.name));
+    const buttons = q.choices.map((c, i) =>
+      el("button", { class: "bubble", "aria-keyshortcuts": String(i + 1), onclick: () => answer(c) },
+        el("span", { class: "key", "aria-hidden": "true" }, String(i + 1)), c.name));
 
     function answer(choice) {
       if (answered) return;
@@ -354,26 +368,47 @@
 
   // --- Fin de partie -----------------------------------------------------------
   // Fiche d'une œuvre : fenêtre modale (Échap, clic à côté ou croix pour fermer).
-  function showSheet(work, ok) {
-    const period = periodDefs.find((p) => p.id === work.period);
-    const dialog = el("dialog", { class: "sheet", "aria-label": `Fiche : ${work.title}` });
-    const notice = noticeCard(work);
-    if (notice) notice.hidden = false;
-    dialog.append(
-      el("button", { class: "quit sheet-close", "aria-label": "Fermer la fiche", onclick: () => dialog.close() }, "×"),
-      el("div", { class: "frame" }, el("img", { src: work.image, alt: `${work.title}, ${work.artist}` })),
-      el("div", { class: "sheet-body" },
-        el("h2", { class: "sheet-title" }, work.title),
-        el("p", { class: "sheet-artist" }, work.artist),
-        el("p", { class: "sheet-meta" }, [work.year, work.museum].filter(Boolean).join(" · ")),
-        el("p", { class: "caption-tags" },
-          el("span", { class: "caption-tag " + (ok ? "sheet-ok" : "sheet-ko") }, ok ? "✓ Trouvée" : "✗ Ratée"),
-          el("span", { class: "caption-tag caption-level level-" + work.difficulty }, `Niveau : ${MODE_LABELS[work.difficulty] || work.difficulty}`),
-          ...(period ? [el("span", { class: "caption-tag" }, `Période : ${period.name}`)] : [])),
-        ...(notice ? [notice] : []),
-        el("small", {}, imageCredit(work))));
+  function showSheet(results, start) {
+    let i = start;
+    const dialog = el("dialog", { class: "sheet" });
+    const close = el("button", { class: "quit sheet-close", "aria-label": "Fermer la fiche", onclick: () => dialog.close() }, "×");
+
+    function render() {
+      const { workId, ok } = results[i];
+      const work = index.byId.get(workId);
+      const period = periodDefs.find((p) => p.id === work.period);
+      const notice = noticeCard(work);
+      if (notice) notice.hidden = false;
+      dialog.setAttribute("aria-label", `Fiche : ${work.title}`);
+      const step = (d, label) => el("button", {
+        class: "next secondary compact", "aria-label": label, onclick: () => { i += d; render(); },
+        ...(i + d < 0 || i + d >= results.length ? { disabled: "" } : {}),
+      }, d < 0 ? "←" : "→");
+      dialog.replaceChildren(
+        close,
+        el("div", { class: "frame" }, el("img", { src: work.image, alt: `${work.title}, ${work.artist}` })),
+        el("div", { class: "sheet-body" },
+          el("h2", { class: "sheet-title" }, work.title),
+          el("p", { class: "sheet-artist" }, work.artist),
+          el("p", { class: "sheet-meta" }, [work.year, work.museum].filter(Boolean).join(" · ")),
+          el("p", { class: "caption-tags" },
+            el("span", { class: "caption-tag " + (ok ? "sheet-ok" : "sheet-ko") }, ok ? "✓ Trouvée" : "✗ Ratée"),
+            el("span", { class: "caption-tag caption-level level-" + work.difficulty }, `Niveau : ${MODE_LABELS[work.difficulty] || work.difficulty}`),
+            ...(period ? [el("span", { class: "caption-tag" }, `Période : ${period.name}`)] : [])),
+          ...(notice ? [notice] : []),
+          el("small", {}, imageCredit(work))),
+        el("div", { class: "sheet-nav" }, step(-1, "Œuvre précédente"),
+          el("span", {}, `${i + 1} / ${results.length}`), step(1, "Œuvre suivante")));
+      dialog.scrollTop = 0;
+    }
+
+    dialog.addEventListener("keydown", (e) => {
+      const d = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+      if (d && i + d >= 0 && i + d < results.length) { i += d; render(); }
+    });
     dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
     dialog.addEventListener("close", () => dialog.remove());
+    render();
     document.body.append(dialog);
     dialog.showModal();
   }
@@ -382,12 +417,12 @@
     const score = game.results.filter((r) => r.ok).length;
     saveScore(game.mode, score);
     say(`Partie terminée : ${score} sur ${game.levels.length}.`);
-    const recap = game.results.map((r) => {
+    const recap = game.results.map((r, i) => {
       const w = index.byId.get(r.workId);
       return el("li", { class: "thumb " + (r.ok ? "ok" : "ko") },
         el("button", {
           class: "thumb-btn", title: `${w.title} : voir la fiche`,
-          "aria-label": `Voir la fiche : ${w.title}, ${w.artist}`, onclick: () => showSheet(w, r.ok),
+          "aria-label": `Voir la fiche : ${w.title}, ${w.artist}`, onclick: () => showSheet(game.results, i),
         }, el("img", { src: thumbUrl(w.image, 400), alt: "", loading: "lazy" })),
         el("span", { class: "mark", "aria-label": r.ok ? "juste" : "faux" }, r.ok ? "✓" : "✗"));
     });

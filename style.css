@@ -91,7 +91,7 @@ a:active { background: var(--ink); color: var(--panel-2); }
 
 /* --- Boutons : réponses et modes ----------------------------------------------- */
 .bubble {
-  display: flex; align-items: center; justify-content: center;
+  position: relative; display: flex; align-items: center; justify-content: center;
   min-height: 96px; padding: 12px 18px;
   background: var(--panel-2);
   border: var(--border) solid var(--ink);
@@ -365,6 +365,14 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .sheet .sheet-ok { background: var(--good); }
 .sheet .sheet-ko { background: var(--bad); }
 .sheet .notice { margin: 0; }
+.sheet-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; font-family: var(--font-mono); font-weight: 700; }
+.sheet-nav .next { width: auto; min-width: 72px; margin: 0; }
+.sheet-nav .next:disabled { opacity: .35; cursor: default; }
+.bubble .key {
+  position: absolute; top: 8px; left: 10px; font-family: var(--font-mono); font-size: .7rem; font-weight: 700;
+  padding: 0 6px; border: 2px solid var(--ink); background: var(--panel-2); color: var(--ink);
+}
+@media (hover: none) { .bubble .key { display: none; } }
 .mark {
   position: absolute; right: 0; bottom: 0; width: 1.9em; height: 1.9em;
   display: flex; align-items: center; justify-content: center;
