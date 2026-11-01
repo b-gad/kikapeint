@@ -340,6 +340,31 @@ a:active { background: var(--ink); color: var(--panel-2); }
   box-shadow: var(--shadow-sm) var(--shadow-sm) 0 var(--ink);
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-btn { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.thumb-btn img { transition: transform .15s; }
+.thumb-btn:hover img, .thumb-btn:focus-visible img { transform: scale(1.06); }
+.thumb-btn:focus-visible { outline-offset: -6px; }
+
+/* --- Fiche d'une œuvre (fin de partie) ------------------------------------------ */
+.sheet {
+  width: min(920px, 94vw); max-height: 92dvh; overflow: auto; padding: 20px; margin: auto;
+  background: var(--panel-2); color: var(--ink);
+  border: var(--border) solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow) var(--shadow) 0 var(--ink);
+}
+.sheet::backdrop { background: rgba(0, 0, 0, .55); }
+.sheet .frame img { width: 100%; max-height: 52dvh; object-fit: contain; display: block; }
+.sheet-close { position: absolute; top: 12px; right: 12px; z-index: 2; }
+.sheet-body { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.sheet-title { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1.05; }
+.sheet-artist { margin: 0; font-weight: 700; font-size: 1.15rem; }
+.sheet-meta { margin: 0; font-family: var(--font-mono); font-size: .8rem; color: var(--ink-soft); }
+.sheet .caption-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.sheet .caption-tag { background: var(--accent); border: 2px solid var(--ink); padding: 2px 10px; font-family: var(--font-mono); font-size: .75rem; font-weight: 700; }
+.sheet .caption-level { background: #fff; }
+.sheet .sheet-ok { background: var(--good); }
+.sheet .sheet-ko { background: var(--bad); }
+.sheet .notice { margin: 0; }
 .mark {
   position: absolute; right: 0; bottom: 0; width: 1.9em; height: 1.9em;
   display: flex; align-items: center; justify-content: center;

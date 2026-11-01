@@ -353,6 +353,31 @@
   }
 
   // --- Fin de partie -----------------------------------------------------------
+  // Fiche d'une œuvre : fenêtre modale (Échap, clic à côté ou croix pour fermer).
+  function showSheet(work, ok) {
+    const period = periodDefs.find((p) => p.id === work.period);
+    const dialog = el("dialog", { class: "sheet", "aria-label": `Fiche : ${work.title}` });
+    const notice = noticeCard(work);
+    if (notice) notice.hidden = false;
+    dialog.append(
+      el("button", { class: "quit sheet-close", "aria-label": "Fermer la fiche", onclick: () => dialog.close() }, "×"),
+      el("div", { class: "frame" }, el("img", { src: work.image, alt: `${work.title}, ${work.artist}` })),
+      el("div", { class: "sheet-body" },
+        el("h2", { class: "sheet-title" }, work.title),
+        el("p", { class: "sheet-artist" }, work.artist),
+        el("p", { class: "sheet-meta" }, [work.year, work.museum].filter(Boolean).join(" · ")),
+        el("p", { class: "caption-tags" },
+          el("span", { class: "caption-tag " + (ok ? "sheet-ok" : "sheet-ko") }, ok ? "✓ Trouvée" : "✗ Ratée"),
+          el("span", { class: "caption-tag caption-level level-" + work.difficulty }, `Niveau : ${MODE_LABELS[work.difficulty] || work.difficulty}`),
+          ...(period ? [el("span", { class: "caption-tag" }, `Période : ${period.name}`)] : [])),
+        ...(notice ? [notice] : []),
+        el("small", {}, imageCredit(work))));
+    dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+    dialog.addEventListener("close", () => dialog.remove());
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
   function showEnd() {
     const score = game.results.filter((r) => r.ok).length;
     saveScore(game.mode, score);
@@ -360,7 +385,10 @@
     const recap = game.results.map((r) => {
       const w = index.byId.get(r.workId);
       return el("li", { class: "thumb " + (r.ok ? "ok" : "ko") },
-        el("img", { src: thumbUrl(w.image, 400), alt: `${w.title}, ${w.artist}`, loading: "lazy" }),
+        el("button", {
+          class: "thumb-btn", title: `${w.title} : voir la fiche`,
+          "aria-label": `Voir la fiche : ${w.title}, ${w.artist}`, onclick: () => showSheet(w, r.ok),
+        }, el("img", { src: thumbUrl(w.image, 400), alt: "", loading: "lazy" })),
         el("span", { class: "mark", "aria-label": r.ok ? "juste" : "faux" }, r.ok ? "✓" : "✗"));
     });
     show("end",
