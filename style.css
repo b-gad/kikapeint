@@ -252,7 +252,9 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .caption[hidden] { display: none; }
 .caption strong { font-weight: 700; font-style: normal; font-size: .95rem; letter-spacing: .1em; }
 .caption span { font-size: .78rem; letter-spacing: .1em; }
-.caption .caption-period { align-self: flex-start; margin-top: 4px; padding: 2px 8px; background: var(--accent); border: 2px solid var(--ink); font-size: .7rem; font-weight: 700; }
+.caption .caption-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 4px; }
+.caption .caption-tag { padding: 2px 8px; background: var(--accent); border: 2px solid var(--ink); font-size: .7rem; font-weight: 700; }
+.caption .caption-level { background: var(--paper, #fff); }
 .caption small { color: var(--ink-soft); font-size: .66rem; letter-spacing: .1em; }
 
 .stage-side { display: flex; flex-direction: column; gap: 16px; }

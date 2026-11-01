@@ -263,7 +263,9 @@
       caption.replaceChildren(
         el("strong", {}, work.title),
         el("span", {}, [work.year, work.museum].filter(Boolean).join(" · ")),
-        ...(period ? [el("span", { class: "caption-period" }, `Période : ${period.name}`)] : []),
+        el("span", { class: "caption-tags" },
+          el("span", { class: "caption-tag caption-level level-" + work.difficulty }, `Niveau : ${MODE_LABELS[work.difficulty] || work.difficulty}`),
+          ...(period ? [el("span", { class: "caption-tag" }, `Période : ${period.name}`)] : [])),
         el("small", {}, imageCredit(work)));
       hearts.hidden = false;
       if (notice) notice.hidden = false;
