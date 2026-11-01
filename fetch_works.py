@@ -458,12 +458,25 @@ def load_periods(cfg):
     return periods
 
 
+# Mouvements dont les œuvres tardives (Pop art des années 1990, Miró de 1983…) suivent leur date et non le mouvement.
+DATE_PRIORITY_MOVEMENTS = {"Pop art", "Surréalisme", "Symbolisme", "Post-impressionnisme"}
+DATE_PRIORITY_GAP = 20   # années d'écart avec la période du mouvement à partir desquelles la date l'emporte
+
+
 def period_for(work, periods, table):
     """Table movement → période d'abord ; sinon la période dont le centre est le plus proche de l'année.
-    Les bornes des périodes ne servent pas à attribuer les œuvres, seulement à dessiner la frise."""
+    Exception : pour DATE_PRIORITY_MOVEMENTS, une année à DATE_PRIORITY_GAP ans ou plus de la période du mouvement
+    donne la période de l'année. Les bornes des périodes ne servent pas à attribuer les œuvres, seulement à dessiner la frise."""
+    nearest = min(periods, key=lambda p: abs(p["center"] - work["year"]))["id"]
     if work["movement"] in table:
+        mapped = next((p for p in periods if p["id"] == table[work["movement"]]), None)
+        if mapped and work["movement"] in DATE_PRIORITY_MOVEMENTS:
+            end = mapped["end"] if mapped["end"] is not None else 9999
+            gap = mapped["start"] - work["year"] if work["year"] < mapped["start"] else max(work["year"] - end, 0)
+            if gap >= DATE_PRIORITY_GAP:
+                return nearest
         return table[work["movement"]]
-    return min(periods, key=lambda p: abs(p["center"] - work["year"]))["id"]
+    return nearest
 
 
 def period_summary(works, periods, table):
