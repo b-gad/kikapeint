@@ -169,10 +169,17 @@
       }
     }
 
+    // Deux étapes : 1. la période, 2. la difficulté
+    const step = (cls, num, title, hint) => el("h2", { class: "step " + cls },
+      el("span", { class: "step-num" }, num), el("span", { class: "step-title" }, title),
+      el("span", { class: "step-hint" }, hint));
     show("home",
       el("h1", { class: "brand" }, "kikapeint"),
-      ...(timeline ? [timeline.node] : []),
+      ...(timeline ? [step("step-period", "1", "Choix de la période",
+        "Clique sur une ou plusieurs périodes. Sans sélection, toutes les périodes sont jouées."), timeline.node] : []),
       count,
+      step("step-mode", timeline ? "2" : "1", "Choix de la difficulté",
+        "Facile, Moyen ou Difficile. Mixte mélange les trois niveaux."),
       el("div", { class: "modes" }, ...modes.map((x) => x.button)),
       el("nav", { class: "page-links" },
         el("button", { class: "page-link", onclick: () => showFavorites() }, "Mes coups de cœur"),

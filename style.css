@@ -145,8 +145,9 @@ a:active { background: var(--ink); color: var(--panel-2); }
   min-height: 100dvh; max-width: none; padding: 0 0 40px;
   display: grid; align-content: start;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "brand links" "timeline timeline" "count count" "modes modes";
+  grid-template-areas: "brand links" "step1 step1" "timeline timeline" "count count" "step2 step2" "modes modes";
 }
+#app[data-screen="home"] > .step,
 #app[data-screen="home"] > .timeline-scroll,
 #app[data-screen="home"] > .period-count,
 #app[data-screen="home"] > .modes {
@@ -171,8 +172,24 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .page-link:hover, .page-link:focus-visible { transform: translate(var(--shadow-sm), var(--shadow-sm)); box-shadow: 0 0 0 var(--ink); background: var(--accent); }
 .page-link:active { background: var(--ink); color: var(--panel-2); }
 
+/* --- Étapes de l'accueil : 1. période, 2. difficulté ---------------------------- */
+.step {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin: 0;
+  font-weight: normal; line-height: 1.1;
+}
+.step-period { grid-area: step1; padding-top: clamp(18px, 4vh, 40px); }
+.step-mode { grid-area: step2; padding-bottom: 12px; }
+.step-num {
+  flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+  background: var(--accent); border: var(--border) solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm) var(--shadow-sm) 0 var(--ink);
+  font-family: var(--font-display); font-weight: 900; font-size: 1.35rem;
+}
+.step-title { font-family: var(--font-display); font-weight: 900; font-size: 1.7rem; text-transform: uppercase; letter-spacing: .02em; }
+.step-hint { font-family: var(--font-mono); font-weight: 500; font-size: .72rem; letter-spacing: .06em; color: var(--ink-soft); }
+
 /* --- Frise chronologique (accueil) ------------------------------------------- */
-.timeline-scroll { grid-area: timeline; overflow-x: auto; padding-top: clamp(32px, 7vh, 72px); padding-bottom: 8px; }
+.timeline-scroll { grid-area: timeline; overflow-x: auto; padding-top: 14px; padding-bottom: 8px; }
 .timeline { position: relative; min-width: 1100px; padding-right: 6px; }
 .periods { display: flex; list-style: none; margin: 0; padding: 0; }
 .periods li { flex: 0 0 auto; min-width: 0; display: flex; }
@@ -205,7 +222,7 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .tick.first { transform: none; }
 .tick.first::before { left: 0; }
 .period-count {
-  grid-area: count; margin: 12px 0 clamp(24px, 5vh, 56px);
+  grid-area: count; margin: 12px 0 clamp(14px, 3vh, 32px);
   font-family: var(--font-mono); font-weight: 700; font-size: .75rem; text-transform: uppercase; letter-spacing: .18em;
 }
 
@@ -416,14 +433,16 @@ a:active { background: var(--ink); color: var(--panel-2); }
   #app[data-screen="home"] {
     max-width: none; padding-bottom: 32px;
     grid-template-columns: 1fr;
-    grid-template-areas: "brand" "links" "timeline" "count" "modes";
+    grid-template-areas: "brand" "links" "step1" "timeline" "count" "step2" "modes";
   }
   #app[data-screen="home"] .brand { padding: 14px var(--gutter) 6px; border-bottom: 0; }
   #app[data-screen="home"] .page-links { padding: 0 var(--gutter) 14px; flex-wrap: wrap; gap: 10px; }
+  #app[data-screen="home"] > .step,
   #app[data-screen="home"] > .timeline-scroll,
   #app[data-screen="home"] > .period-count,
   #app[data-screen="home"] > .modes { max-width: 560px; }
-  #app[data-screen="home"] > .timeline-scroll { padding-top: 20px; }
+  #app[data-screen="home"] > .timeline-scroll { padding-top: 14px; }
+  .step-title { font-size: 1.45rem; }
   .modes { grid-template-columns: 1fr; gap: 18px; }
   .bubble.big { min-height: 104px; font-size: 2rem; }
   .bubble { min-height: 72px; font-size: 1.3rem; }
