@@ -252,6 +252,7 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .caption[hidden] { display: none; }
 .caption strong { font-weight: 700; font-style: normal; font-size: .95rem; letter-spacing: .1em; }
 .caption span { font-size: .78rem; letter-spacing: .1em; }
+.caption .caption-period { align-self: flex-start; margin-top: 4px; padding: 2px 8px; background: var(--accent); border: 2px solid var(--ink); font-size: .7rem; font-weight: 700; }
 .caption small { color: var(--ink-soft); font-size: .66rem; letter-spacing: .1em; }
 
 .stage-side { display: flex; flex-direction: column; gap: 16px; }
@@ -415,7 +416,7 @@ a:active { background: var(--ink); color: var(--panel-2); }
   /* Tout est ancré en haut et la place de la légende est réservée : rien ne bouge quand la réponse apparaît. */
   .stage-art { min-height: 0; display: flex; justify-content: center; align-items: flex-start; padding: 6px 6px 0 0; }
   .frame img { max-height: calc(100dvh - 285px); }
-  .caption { min-height: 78px; }
+  .caption { min-height: 104px; }
   .caption[hidden] { display: flex; visibility: hidden; }
   .stage-side { min-height: 0; justify-content: flex-start; padding: 0 6px 6px 0; }
   .grid { grid-auto-rows: minmax(74px, auto); }

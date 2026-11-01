@@ -259,9 +259,11 @@
       });
       dots.replaceChildren(...dotsFor(position + 1));
       caption.hidden = false;
+      const period = periodDefs.find((p) => p.id === work.period);
       caption.replaceChildren(
         el("strong", {}, work.title),
         el("span", {}, [work.year, work.museum].filter(Boolean).join(" · ")),
+        ...(period ? [el("span", { class: "caption-period" }, `Période : ${period.name}`)] : []),
         el("small", {}, imageCredit(work)));
       hearts.hidden = false;
       if (notice) notice.hidden = false;
