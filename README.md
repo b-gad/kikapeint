@@ -230,7 +230,7 @@ L'accueil affiche une frise de 12 cases (une par période, largeur proportionnel
 un clic active ou désactive une période (sélection multiple, aucune = toutes). Une période sans œuvre dans
 `works.json` est grisée (« Bientôt ») et devient cliquable dès qu'une œuvre lui est rattachée. Seules les œuvres
 des périodes choisies sont posées ; les distracteurs viennent d'abord de ces périodes, puis le repli habituel
-s'applique. Un mode est grisé s'il y a moins de 10 œuvres éligibles (Mixte : 4 + 3 + 3). La sélection est
+s'applique. Facile, Moyen et Difficile sont grisés s'il y a moins de 10 œuvres éligibles à leur niveau. Mixte vise 4 + 3 + 3 mais prend une œuvre du niveau voisin quand un niveau est épuisé : il est jouable dès 10 œuvres au total. La sélection est
 mémorisée dans le `localStorage` (clé `kikapeint:periods:v1`).
 
 Après la réponse, la carte de notice indique la période de l'œuvre (nom, dates, courte explication, lien

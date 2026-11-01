@@ -132,8 +132,10 @@
   }
 
   // Un mode est jouable s'il y a, pour chaque niveau qu'il demande, assez d'œuvres éligibles
-  // (10 pour facile / moyen / difficile ; 4 + 3 + 3 pour mixte).
+  // (10 pour facile / moyen / difficile). Mixte vise 4 + 3 + 3 mais se rabat sur les niveaux voisins
+  // (voir drawQuestion) : il lui suffit de 10 œuvres au total.
   function modeAvailable(mode, counts) {
+    if (mode === "mixte") return LEVELS.reduce((sum, level) => sum + counts[level], 0) >= MODES.mixte.length;
     const need = {};
     for (const level of MODES[mode]) need[level] = (need[level] || 0) + 1;
     return Object.entries(need).every(([level, n]) => counts[level] >= n);
@@ -181,7 +183,20 @@
 
   // Tire la question suivante pour un niveau : œuvre et artiste correct encore jamais utilisés,
   // et parmi elles celles qui demandent le moins de replis. Retourne null s'il n'y a plus d'œuvre.
+  // En mode mixte, si le niveau demandé est épuisé, la question vient du niveau le plus proche.
   function drawQuestion(index, game, level, rng = Math.random) {
+    const first = drawAtLevel(index, game, level, rng);
+    if (first || game.mode !== "mixte") return first;
+    const at = LEVELS.indexOf(level);
+    const others = LEVELS.filter((l) => l !== level).sort((a, b) => Math.abs(LEVELS.indexOf(a) - at) - Math.abs(LEVELS.indexOf(b) - at));
+    for (const other of others) {
+      const q = drawAtLevel(index, game, other, rng);
+      if (q) return q;
+    }
+    return null;
+  }
+
+  function drawAtLevel(index, game, level, rng) {
     const pool = index.byLevel[level].filter(
       (w) => !game.usedWorks.has(w.id) && !game.failed.has(w.id) && inPeriods(w, game.selection));
     let fresh = pool.filter((w) => !game.usedArtists.has(w.artist_id));
