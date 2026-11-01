@@ -353,7 +353,9 @@
         el("span", { class: "mark", "aria-label": r.ok ? "juste" : "faux" }, r.ok ? "✓" : "✗"));
     });
     show("end",
-      el("p", { class: "score" }, `${score}/${game.levels.length}`),
+      el("p", { class: "score" },
+        el("span", { class: "score-num" }, String(score)), el("span", { class: "score-sep" }, "/"),
+        el("span", { class: "score-num" }, String(game.levels.length))),
       el("ul", { class: "recap" }, ...recap),
       el("div", { class: "actions" },
         el("button", { class: "next", onclick: () => start(game.mode) }, "Rejouer"),

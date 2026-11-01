@@ -263,3 +263,9 @@ python3 fetch_works.py --pageviews   # notoriété avec vues Wikipédia
 | `difficulty`, `difficulty_source` | `facile` / `moyen` / `difficile` ; `computed` ou `override` |
 | `wikipedia_url` | article Wikipédia dont vient la notice |
 | `source` | `wikidata` ou `manual` |
+
+## Style
+
+Tout le style est dans `style.css`, piloté par les variables de `:root` (palette, polices, `--radius`, épaisseur
+des bordures, décalage des ombres, pas du quadrillage). Les polices (Big Shoulders Display, JetBrains Mono, Inter)
+sont chargées depuis Google Fonts dans `index.html` ; sans connexion, des polices système de secours prennent le relais.
