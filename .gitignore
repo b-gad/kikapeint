@@ -1,2 +1,6 @@
 .DS_Store
 __pycache__/
+
+images_local/
+private_works.json
+data/works_private.json

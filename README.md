@@ -123,6 +123,18 @@ l'écrire, et les œuvres manuelles ne sont pas soumises aux plafonds.
 
 Puis régénère les données.
 
+## Images que tu fournis toi-même
+
+```bash
+python3 add_local_image.py <fichier> --title "..." --artist "..." --year 1951 --movement "..." [--qid Q25217667]
+```
+
+L'image est copiée dans `images_local/<artiste>-<titre>.jpg` (convertie en JPEG de 1600 px maximum si besoin ; le
+fichier d'origine n'est jamais modifié). L'œuvre reçoit `image_local`, `image_license: "Non libre (usage privé)"`
+et `private: true`, puis est listée dans `private_works.json` et `data/works_private.json`, que le quiz charge s'il
+existe. `images_local/`, `private_works.json` et `data/works_private.json` sont ignorés par git : ces œuvres
+n'apparaissent que sur cet ordinateur, pas sur le site en ligne. `--rebuild` régénère `data/works_private.json`.
+
 ## Coups de cœur
 
 Après chaque réponse, deux boutons en forme de cœur permettent d'enregistrer l'œuvre et/ou l'artiste,

@@ -463,6 +463,11 @@
 
   fetch("data/works.json")
     .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    // Œuvres privées (images fournies par l'utilisateur) : fichier local facultatif, absent du site en ligne.
+    .then((works) => fetch("data/works_private.json")
+      .then((r) => (r.ok ? r.json() : []))
+      .catch(() => [])
+      .then((priv) => works.concat(Array.isArray(priv) ? priv : [])))
     .then((works) => { index = Q.buildIndex(works); return Promise.all([remoteFavorites, configLoaded]); })
     .then(showHome)
     .catch((e) => show("error", el("p", { class: "error" }, "Impossible de charger les œuvres (" + e.message + ").")));
