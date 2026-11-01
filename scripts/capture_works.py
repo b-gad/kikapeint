@@ -2,7 +2,11 @@
 """Capture les œuvres d'une page web « les 10 tableaux les plus connus de X » et les ajoute à manual_works.json.
 
   python3 scripts/capture_works.py "https://exemple.fr/10-tableaux-de-picasso|Pablo Picasso" ["URL|Artiste" ...]
-  python3 scripts/capture_works.py --page https://exemple.fr/article --artist "Pablo Picasso"
+  python3 scripts/capture_works.py "https://exemple.fr/chillida|Eduardo Chillida|Art contemporain|sculpture"
+  python3 scripts/capture_works.py --page https://exemple.fr/article --artist "Pablo Picasso" [--movement M] [--type sculpture]
+
+Le mouvement (qui décide de la période, voir movement_periods dans config.json) et le type (peinture par défaut)
+peuvent être imposés pour toutes les œuvres de la page ; sinon le mouvement vient de Wikidata.
 
 Sans artiste, il est déduit du titre de la page (« ... de Pablo Picasso »). Pour chaque page :
   1. Chromium visible (1920 × 1080, échelle ×2), bandeaux fermés (refus), défilement par paliers ;
@@ -138,7 +142,7 @@ FIND_WORKS = """(minWidth) => {
 def png_ok(png):
     """Capture exploitable : non vide (pas uniforme) et de taille suffisante."""
     im = Image.open(io.BytesIO(png)).convert("L")
-    return im.size[0] >= 2 * MIN_WIDTH * 0.9 and max(ImageStat.Stat(im).stddev) > 4
+    return im.size[0] >= MIN_WIDTH and max(ImageStat.Stat(im).stddev) > 4
 
 
 def enlarge_and_shoot(page, handle):
@@ -173,12 +177,12 @@ def enlarge_and_shoot(page, handle):
     return None
 
 
-def capture(page, handle, meta):
+def capture(page, handle, meta, min_natural=2 * MIN_WIDTH):
     """Capture de l'élément image seul ; une nouvelle tentative si vide ou en cours de chargement."""
     for attempt in range(2):
         handle.scroll_into_view_if_needed()
         page.wait_for_timeout(700 if attempt == 0 else 2000)
-        loaded = handle.evaluate("e=>e.complete&&e.naturalWidth>=%d" % (2 * MIN_WIDTH))
+        loaded = handle.evaluate("e=>e.complete&&e.naturalWidth>=%d" % min_natural)
         if not loaded:
             continue
         png = enlarge_and_shoot(page, handle) or handle.screenshot(type="png")
@@ -233,23 +237,99 @@ def known_keys():
             {(il.norm(w["title"]), il.norm(w["artist"])) for w in works if w.get("title") and w.get("artist")})
 
 
-def process_page(ctx, url, artist, known_ids, known_titles, artist_cache):
+def find_tiles(page):
+    """Mode galerie (pages d'artiste type WikiArt) : vignettes avec un lien vers la fiche de l'œuvre."""
+    return page.evaluate("""() => {
+      const seen = new Set(), out = [];
+      document.querySelectorAll('li img, article img').forEach((img) => {
+        const box = img.closest('li, article');
+        const r = img.getBoundingClientRect();
+        if (!box || r.width < 150 || !img.offsetParent) return;
+        const a = [...box.querySelectorAll('a[href]')].find((x) => x.getAttribute('href').startsWith('/') && !/edit|login|store|\\/search/.test(x.getAttribute('href')) && x.innerText.trim());
+        if (!a || seen.has(a.href)) return;
+        seen.add(a.href);
+        out.push({ href: a.href, text: (box.innerText || '').trim() });
+      });
+      return out;
+    }""")
+
+
+def read_fiche(ctx, href):
+    """Ouvre la fiche d'une œuvre. Retourne (élément image principal, page, année lue ou None)."""
+    tab = ctx.new_page()
+    tab.goto(href, wait_until="domcontentloaded", timeout=45000)
+    try:
+        tab.wait_for_selector(
+            'img[src*="%s"]' % href.rstrip("/").rsplit("/", 1)[-1], timeout=9000)
+    except Exception:
+        pass
+    tab.wait_for_timeout(1200)
+    year = tab.evaluate("""()=>{const l=[...document.querySelectorAll('s,b,strong,dt,span')].find(e=>/^\\s*(Date|Année|Year)\\b/i.test(e.innerText||'')
+        &&e.innerText.length<20);const t=l?(l.parentElement.innerText||''):'';const m=t.match(/\\b(1[5-9]\\d\\d|20[0-2]\\d)\\b/);return m?+m[1]:null}""")
+    # l'image de l'œuvre est celle dont l'URL contient l'identifiant de la fiche (pas la bannière ni les vignettes)
+    slug = href.rstrip("/").rsplit("/", 1)[-1]
+    big = lambda i: i.is_visible() and (i.bounding_box() or {}).get("width", 0) >= 200
+    img = next((i for i in tab.query_selector_all("img") if slug in (i.get_attribute("src") or "") and big(i)), None) \
+        or next((i for i in tab.query_selector_all(".btn-overlay-wrapper-artwork img, img.main-image") if big(i)
+                 and "placeholder" not in (i.get_attribute("src") or "")), None)
+    return img, tab, year
+
+
+def process_page(ctx, url, artist, known_ids, known_titles, artist_cache, force_movement=None, work_type="peinture"):
     page = ctx.new_page()
     added, failed = [], []
+    artist_info = None
+    manual = json.loads(MANUAL_FILE.read_text(encoding="utf-8")) if MANUAL_FILE.exists() else []
+
+    def finalize(title, year, png, section=""):
+        """Wikidata, JPEG, entrée dans manual_works.json. Retourne True si l'œuvre est ajoutée."""
+        nonlocal manual
+        found = lookup_work(title, artist)
+        time.sleep(0.3)
+        year = year or (found and found["year"])
+        if not year:   # dernier recours : une année du texte de la section (seule l'année est reprise)
+            m = re.search(r"\b(1[5-9]\d\d|20[0-2]\d)\b", section or "")
+            year = int(m.group(1)) if m else None
+        if not year:
+            log(f"    ✗ {title} : année inconnue")
+            return False
+        wid = found["id"] if found else f"local:{ali.slugify(artist)}-{ali.slugify(title)}"
+        if wid in known_ids:
+            log(f"    = déjà présente : {title}")
+            return None
+        name = f"{ali.slugify(artist)}-{ali.slugify(title)}.jpg"
+        im = Image.open(io.BytesIO(png)).convert("RGB")
+        im.thumbnail((MAX_SIDE, MAX_SIDE))
+        ali.IMAGES_DIR.mkdir(exist_ok=True)
+        im.save(ali.IMAGES_DIR / name, "JPEG", quality=90)
+        entry = {
+            "id": wid, "title": title, "artist": artist, "year": year,
+            "movement": force_movement or (found and found["movement"]) or "Art moderne", "type": work_type,
+            "museum": found["museum"] if found else None,
+            "image": f"images_local/{name}", "image_local": f"images_local/{name}", "image_page": None,
+            "image_license": ali.LICENSE, "image_credit": ali.CREDIT, "private": True, "source": "private",
+            **({"artist_id": artist_info[0]} if artist_info else {}),
+        }
+        manual = [e for e in manual if e["id"] != wid] + [entry]
+        MANUAL_FILE.write_text(json.dumps(manual, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        known_ids.add(wid)
+        known_titles.add((il.norm(title), il.norm(artist)))
+        log(f"    ✓ {title} ({year}) {'[Wikidata ' + wid + ']' if found else '[local]'}")
+        return True
+
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=45000)
         page.wait_for_timeout(2500)
         artist = artist or artist_from_page_title(page.title())
         if not artist:
-            log(f"  ⚠ artiste introuvable dans le titre « {page.title()} » : donne-le avec URL=Artiste")
+            log(f"  ⚠ artiste introuvable dans le titre « {page.title()} » : donne-le avec URL|Artiste")
             return None, [], []
         dismiss_banners(page)
         scroll_through(page)
-        works = page.evaluate(FIND_WORKS, MIN_WIDTH)
-        log(f"  {len(works)} images candidates pour {artist}")
         artist_info = resolve_artist(artist, artist_cache)
         artist_tokens = set(il.norm(artist).split())
-        manual = json.loads(MANUAL_FILE.read_text(encoding="utf-8")) if MANUAL_FILE.exists() else []
+        works = page.evaluate(FIND_WORKS, MIN_WIDTH)
+        log(f"  {len(works)} images candidates pour {artist}")
         for w in works:
             head, year_h = clean_title(w["heading"] or "")
             alt, year_a = clean_title(re.sub(r"\s+", " ", w["alt"]))
@@ -265,42 +345,41 @@ def process_page(ctx, url, artist, known_ids, known_titles, artist_cache):
                 continue
             handle = page.query_selector(f'[data-kk-work="{w["index"]}"]')
             png = capture(page, handle, w) if handle else None
-            if not png:
+            ok = finalize(title, year, png, w.get("section")) if png else False
+            if ok:
+                added.append(title)
+            elif ok is False:
                 failed.append(title)
-                continue
-            found = lookup_work(title, artist)
-            time.sleep(0.3)
-            year = year or (found and found["year"])
-            if not year:   # dernier recours : une année du texte de la section (seule l'année est reprise)
-                m = re.search(r"\b(1[5-9]\d\d|20[0-2]\d)\b", w.get("section") or "")
-                year = int(m.group(1)) if m else None
-            if not year:
-                log(f"    ✗ {title} : année inconnue")
-                failed.append(title)
-                continue
-            wid = found["id"] if found else f"local:{ali.slugify(artist)}-{ali.slugify(title)}"
-            if wid in known_ids:
-                log(f"    = déjà présente : {title}")
-                continue
-            name = f"{ali.slugify(artist)}-{ali.slugify(title)}.jpg"
-            im = Image.open(io.BytesIO(png)).convert("RGB")
-            im.thumbnail((MAX_SIDE, MAX_SIDE))
-            ali.IMAGES_DIR.mkdir(exist_ok=True)
-            im.save(ali.IMAGES_DIR / name, "JPEG", quality=90)
-            movement = (found and found["movement"]) or "Art moderne"
-            entry = {
-                "id": wid, "title": title, "artist": artist, "year": year, "movement": movement, "type": "peinture",
-                "museum": found["museum"] if found else None,
-                "image": f"images_local/{name}", "image_local": f"images_local/{name}", "image_page": None,
-                "image_license": ali.LICENSE, "image_credit": ali.CREDIT, "private": True, "source": "private",
-                **({"artist_id": artist_info[0]} if artist_info else {}),
-            }
-            manual = [e for e in manual if e["id"] != wid] + [entry]
-            MANUAL_FILE.write_text(json.dumps(manual, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            known_ids.add(wid)
-            known_titles.add((il.norm(title), il.norm(artist)))
-            added.append(title)
-            log(f"    ✓ {title} ({year}) {'[Wikidata ' + wid + ']' if found else '[local]'}")
+
+        if not (added or failed):   # pas d'article à intertitres : galerie (vignettes → fiches)
+            tiles = find_tiles(page)
+            log(f"  mode galerie : {len(tiles)} vignettes")
+            for t in tiles:
+                lines = [l.strip() for l in t["text"].splitlines() if l.strip()]
+                title, year = clean_title(lines[0] if lines else "")
+                m = re.search(r"\b(1[5-9]\d\d|20[0-2]\d)\b", t["text"])
+                year = year or (int(m.group(1)) if m else None)
+                if not title:
+                    continue
+                if (il.norm(title), il.norm(artist)) in known_titles:
+                    log(f"    = déjà présente : {title}")
+                    continue
+                time.sleep(PAUSE)
+                tab = None
+                try:
+                    img, tab, year_f = read_fiche(ctx, t["href"])
+                    png = capture(tab, img, {}, min_natural=MIN_WIDTH) if img else None
+                    ok = finalize(title, year or year_f, png) if png else False
+                except Exception as e:
+                    log(f"    ✗ {title} : {e}")
+                    ok = False
+                finally:
+                    if tab:
+                        tab.close()
+                if ok:
+                    added.append(title)
+                elif ok is False:
+                    failed.append(title)
     finally:
         page.close()
     return artist, added, failed
@@ -310,13 +389,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pairs", nargs="*", help="URL|Artiste (artiste facultatif : URL seule)")
     ap.add_argument("--page"), ap.add_argument("--artist")
+    ap.add_argument("--movement", help="mouvement imposé à toutes les œuvres (décide de la période)")
+    ap.add_argument("--type", default="peinture", help="peinture (défaut) ou sculpture")
     args = ap.parse_args()
     pairs = []
     for p in args.pairs:
-        url, _, artist = p.partition("|")
-        pairs.append((url.strip(), artist.strip() or None))
+        url, artist, movement, wtype = (p.split("|") + ["", "", ""])[:4]
+        pairs.append((url.strip(), artist.strip() or None, movement.strip() or args.movement, wtype.strip() or args.type))
     if args.page:
-        pairs.append((args.page, args.artist))
+        pairs.append((args.page, args.artist, args.movement, args.type))
     if not pairs:
         ap.error("donne au moins une URL")
     known_ids, known_titles = known_keys()
@@ -324,13 +405,13 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         ctx = browser.new_context(viewport={"width": 1920, "height": 1080}, device_scale_factor=2, locale="fr-FR")
-        for i, (url, artist) in enumerate(pairs):
+        for i, (url, artist, movement, wtype) in enumerate(pairs):
             if i:
                 time.sleep(PAUSE)
             clean = re.sub(r"[?&](srsltid|utm_[a-z]+)=[^&]*", "", url)   # paramètres de suivi retirés
             log(f"# {clean}")
             try:
-                name, added, failed = process_page(ctx, clean, artist, known_ids, known_titles, artist_cache)
+                name, added, failed = process_page(ctx, clean, artist, known_ids, known_titles, artist_cache, movement, wtype)
             except Exception as e:
                 name, added, failed = artist, [], []
                 log(f"  ✗ page inaccessible : {e}")

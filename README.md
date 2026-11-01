@@ -161,6 +161,12 @@ Usage (couples « URL|Artiste » ; l'artiste est facultatif, il est alors dédui
 python3 add_local_image.py --rebuild     # produit data/works_private.json (notices Wikipédia, niveaux, périodes)
 ```
 
+Options : `URL|Artiste|Mouvement|type` (ou `--movement`, `--type`) impose le mouvement, donc la période, et le type
+(`sculpture`) à toutes les œuvres de la page, par exemple `"https://www.wikiart.org/fr/eduardo-chillida|Eduardo Chillida|Art contemporain|sculpture"`.
+Si la page n'est pas un article à intertitres mais une galerie (vignettes avec liens, comme WikiArt), le script ouvre
+la fiche de chaque œuvre pour capturer son image principale. Une œuvre dont l'année est inconnue (WikiArt affiche « ? »)
+est passée.
+
 Une ligne par page est affichée à la fin : nombre d'œuvres ajoutées et titres en échec. `add_local_image.py --rebuild`
 lit `private_works.json` et les entrées `image_local` de `manual_works.json` ; `fetch_works.py` ignore ces dernières.
 
