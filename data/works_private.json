@@ -539,8 +539,8 @@
   "wikipedia_url": "https://fr.wikipedia.org/wiki/Banksy",
   "work_fame": 0,
   "artist_fame": 76,
-  "difficulty": "difficile",
-  "difficulty_source": "computed",
+  "difficulty": "facile",
+  "difficulty_source": "override",
   "source": "private",
   "image_local": "images_local/banksy-girl-with-balloon.jpg",
   "private": true
@@ -1111,8 +1111,8 @@
   "wikipedia_url": "https://fr.wikipedia.org/wiki/Banksy",
   "work_fame": 0,
   "artist_fame": 76,
-  "difficulty": "difficile",
-  "difficulty_source": "computed",
+  "difficulty": "facile",
+  "difficulty_source": "override",
   "source": "private",
   "image_local": "images_local/banksy-flower-thrower.jpg",
   "private": true
@@ -1137,8 +1137,8 @@
   "wikipedia_url": "https://fr.wikipedia.org/wiki/Banksy",
   "work_fame": 0,
   "artist_fame": 76,
-  "difficulty": "difficile",
-  "difficulty_source": "computed",
+  "difficulty": "facile",
+  "difficulty_source": "override",
   "source": "private",
   "image_local": "images_local/banksy-kissing-coppers.jpg",
   "private": true
