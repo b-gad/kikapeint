@@ -16,9 +16,7 @@
 ## Idées (à trier)
 
 Expérience de jeu
-- **Autres types de question** : « Dans quelle période ? », « Quelle année approximative ? » (curseur sur la frise).
 - **Défi du jour** : mêmes 10 œuvres pour tout le monde, tirées avec la date comme graine (sans backend).
-- **Zoom sur l'image** pendant la question.
 - **Indice optionnel** (période ou année) qui réduit les points, pour les niveaux moyen et difficile.
 
 Contenu

@@ -103,6 +103,22 @@ a:active { background: var(--ink); color: var(--panel-2); }
   cursor: pointer;
 }
 .bubble.big { min-height: clamp(170px, 30vh, 280px); font-size: clamp(2.7rem, 4vw, 3.6rem); flex-direction: column; gap: 8px; }
+/* Choix du type de question (accueil) */
+.qtypes { grid-area: qtypes; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-bottom: clamp(14px, 3vh, 32px); }
+.qtype {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 64px; padding: 8px 12px; background: var(--panel-2); color: var(--ink);
+  border: var(--border-thin) solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm) var(--shadow-sm) 0 var(--ink); cursor: pointer; text-align: center;
+}
+.qtype-name { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; text-transform: uppercase; line-height: 1; }
+.qtype-hint { font-family: var(--font-mono); font-weight: 500; font-size: .6rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-soft); }
+.qtype:hover:not(:disabled), .qtype:focus-visible:not(:disabled) { transform: translate(var(--shadow-sm), var(--shadow-sm)); box-shadow: 0 0 0 var(--ink); }
+.qtype[aria-pressed="true"] { background: var(--accent); }
+.qtype[aria-pressed="true"] .qtype-hint { color: var(--ink); }
+.qtype:active:not(:disabled) { background: var(--ink); color: var(--panel-2); }
+.qtype:active:not(:disabled) .qtype-hint { color: var(--panel-2); }
+.qtype:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; transform: translate(var(--shadow-sm), var(--shadow-sm)); }
 .mode-note { font-family: var(--font-mono); font-weight: 500; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
 .mode-note:empty { display: none; }
 /* survol : le bouton s'enfonce (l'ombre disparaît, il se déplace de l'ombre) */
@@ -145,11 +161,12 @@ a:active { background: var(--ink); color: var(--panel-2); }
   min-height: 100dvh; max-width: none; padding: 0 0 40px;
   display: grid; align-content: start;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "brand links" "step1 step1" "timeline timeline" "count count" "step2 step2" "modes modes";
+  grid-template-areas: "brand links" "step1 step1" "timeline timeline" "count count" "step2 step2" "qtypes qtypes" "step3 step3" "modes modes";
 }
 #app[data-screen="home"] > .step,
 #app[data-screen="home"] > .timeline-scroll,
 #app[data-screen="home"] > .period-count,
+#app[data-screen="home"] > .qtypes,
 #app[data-screen="home"] > .modes {
   width: 100%; max-width: 1600px; margin-inline: auto; padding-inline: var(--gutter);
 }
@@ -178,7 +195,8 @@ a:active { background: var(--ink); color: var(--panel-2); }
   font-weight: normal; line-height: 1.1;
 }
 .step-period { grid-area: step1; padding-top: clamp(18px, 4vh, 40px); }
-.step-mode { grid-area: step2; padding-bottom: 12px; }
+.step-qtype { grid-area: step2; padding-bottom: 12px; }
+.step-mode { grid-area: step3; padding-bottom: 12px; }
 .step-num {
   flex: none; width: 34px; height: 34px; display: grid; place-items: center;
   background: var(--accent); border: var(--border) solid var(--ink); border-radius: var(--radius);
@@ -248,6 +266,20 @@ a:active { background: var(--ink); color: var(--panel-2); }
   background: var(--bg);
   outline: var(--border-thin) solid var(--ink);
 }
+/* Loupe : le contour passe du <img> à sa boîte, qui rogne l'image agrandie */
+.zoom-box { overflow: hidden; outline: var(--border-thin) solid var(--ink); background: var(--bg); cursor: zoom-in; }
+.zoom-box img { outline: 0; transition: transform .18s ease-out; }
+.zoom-box.zoomed { cursor: zoom-out; touch-action: none; }
+.zoom-box.zoomed img { transition: none; }
+.zoom-btn {
+  position: absolute; right: 26px; bottom: 26px; z-index: 1; padding: 4px 10px;
+  background: var(--panel-2); border: var(--border-thin) solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm) var(--shadow-sm) 0 var(--ink);
+  font-family: var(--font-mono); font-weight: 700; font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; cursor: pointer;
+}
+.zoom-btn:hover, .zoom-btn:focus-visible { transform: translate(var(--shadow-sm), var(--shadow-sm)); box-shadow: 0 0 0 var(--ink); }
+.zoom-btn[aria-pressed="true"] { background: var(--accent); }
+.artwork .frame { position: relative; }
 .caption { display: flex; flex-direction: column; gap: 3px; margin-top: 20px; font-family: var(--font-mono); text-transform: uppercase; }
 .caption[hidden] { display: none; }
 .caption strong { font-weight: 700; font-style: normal; font-size: .95rem; letter-spacing: .1em; }
@@ -258,6 +290,8 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .caption small { color: var(--ink-soft); font-size: .66rem; letter-spacing: .1em; }
 
 .stage-side { display: flex; flex-direction: column; gap: 16px; }
+.prompt { margin: 0; font-family: var(--font-mono); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .14em; }
+
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 
 /* Cœurs et notes */
@@ -469,17 +503,20 @@ a:active { background: var(--ink); color: var(--panel-2); }
   #app[data-screen="home"] {
     max-width: none; padding-bottom: 32px;
     grid-template-columns: 1fr;
-    grid-template-areas: "brand" "links" "step1" "timeline" "count" "step2" "modes";
+    grid-template-areas: "brand" "links" "step1" "timeline" "count" "step2" "qtypes" "step3" "modes";
   }
   #app[data-screen="home"] .brand { padding: 14px var(--gutter) 6px; border-bottom: 0; }
   #app[data-screen="home"] .page-links { padding: 0 var(--gutter) 14px; flex-wrap: wrap; gap: 10px; }
   #app[data-screen="home"] > .step,
   #app[data-screen="home"] > .timeline-scroll,
   #app[data-screen="home"] > .period-count,
+  #app[data-screen="home"] > .qtypes,
   #app[data-screen="home"] > .modes { max-width: 560px; }
   #app[data-screen="home"] > .timeline-scroll { padding-top: 14px; }
   .step-title { font-size: 1.45rem; }
   .modes { grid-template-columns: 1fr; gap: 18px; }
+  .qtypes { grid-template-columns: 1fr; gap: 14px; }
+  .zoom-btn { right: 20px; bottom: 20px; }
   .bubble.big { min-height: 104px; font-size: 2rem; }
   .bubble { min-height: 72px; font-size: 1.3rem; }
   .dots { gap: 6px; margin: 0 0 12px; padding-right: 60px; flex-wrap: wrap; justify-content: flex-start; }

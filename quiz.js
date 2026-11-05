@@ -3,8 +3,20 @@
   const Q = QuizLogic;
   const STORAGE_KEY = "kikapeint:v1";
   const PERIODS_KEY = "kikapeint:periods:v1";
+  const QTYPE_KEY = "kikapeint:qtype:v1";
   const TICK_YEARS = [1400, 1600, 1800, 1900, 2000];
   const MODE_LABELS = { facile: "Facile", moyen: "Moyen", difficile: "Difficile", mixte: "Mixte" };
+  // Type de question : [libellé, sous-titre]. « melange » tire un type au hasard à chaque question.
+  const QTYPE_LABELS = {
+    artiste: ["Artiste", "Qui l'a créée ?"], periode: ["Période", "Quelle époque ?"],
+    melange: ["Mélangé", "Un peu de tout"],
+  };
+  const PROMPTS = {
+    artiste: "Qui a créé cette œuvre ?",
+    periode: "Dans quelle période cette œuvre a-t-elle été réalisée ?",
+  };
+  const ZOOM = 2.5;        // agrandissement de la loupe
+  const ZOOM_IMAGE = 1600; // largeur de l'image chargée au premier zoom
   const MAX_CREDIT = 110;
   const HEART_PATH = "M12 21s-7.5-4.6-9.6-9.2C.9 8.2 3 4.5 6.6 4.5c2 0 3.5 1.1 4.4 2.5.9-1.4 2.4-2.5 4.4-2.5 3.6 0 5.7 3.7 4.2 7.3C19.5 16.4 12 21 12 21z";
 
@@ -16,6 +28,7 @@
   let screenToken = 0; // invalide les rappels (erreur d'image) d'un écran déjà quitté
   let periodDefs = [];            // périodes de config.json (vide si le fichier est introuvable)
   let selectedPeriods = new Set(); // période(s) choisie(s) ; vide = toutes
+  let questionType = "artiste";    // type de question choisi à l'accueil
   const repWorkCache = new Map();
 
   function el(tag, attrs, ...children) {
@@ -39,11 +52,15 @@
 
   function say(text) { status.textContent = text; }
 
-  // Raccourcis de l'écran de question : 1 à 4 pour répondre, Entrée pour passer à la suite.
+  // Raccourcis de l'écran de question : 1 à 4 pour répondre, Entrée pour passer à la suite, Z pour zoomer.
   document.addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey || app.dataset.screen !== "question") return;
-    if (document.querySelector("dialog[open]") || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
-    if (/^[1-4]$/.test(e.key)) {
+    if (document.querySelector("dialog[open]")) return;
+    if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (/^[zZ]$/.test(e.key)) {
+      const zoom = app.querySelector(".zoom-btn");
+      if (zoom) zoom.click();
+    } else if (/^[1-4]$/.test(e.key)) {
       const b = app.querySelectorAll(".grid .bubble")[Number(e.key) - 1];
       if (b && !b.disabled) b.click();
     } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") {
@@ -120,6 +137,19 @@
     try { localStorage.setItem(PERIODS_KEY, JSON.stringify([...selectedPeriods])); } catch (e) { /* ignoré */ }
   }
 
+  // Type de question mémorisé ; « période » n'a de sens que si la frise est chargée (au moins quatre périodes).
+  function loadQuestionType() {
+    try {
+      const saved = localStorage.getItem(QTYPE_KEY);
+      if (saved in QTYPE_LABELS && (saved !== "periode" || periodDefs.length > 3)) return saved;
+    } catch (e) { /* stockage indisponible */ }
+    return "artiste";
+  }
+
+  function saveQuestionType() {
+    try { localStorage.setItem(QTYPE_KEY, questionType); } catch (e) { /* ignoré */ }
+  }
+
   function frenchCount(n, word) { return `${n} ${word}${n > 1 ? "s" : ""}`; }
 
   // Frise chronologique : une case par période, largeur proportionnelle à la durée (6 % minimum).
@@ -150,8 +180,17 @@
   function showHome() {
     const counts = periodCounts();
     selectedPeriods = loadSelection();
+    questionType = loadQuestionType();
     const count = el("p", { class: "period-count", "aria-live": "polite" });
     const timeline = periodDefs.length ? buildTimeline(counts, toggle) : null;
+    const qtypes = Object.entries(QTYPE_LABELS).map(([id, [label, hint]]) => {
+      const button = el("button", { class: "qtype", "aria-pressed": "false",
+        onclick: () => { questionType = id; saveQuestionType(); syncTypes(); } },
+        el("span", { class: "qtype-name" }, label), el("span", { class: "qtype-hint" }, hint));
+      if (id === "periode" && periodDefs.length < 4) { button.disabled = true; button.title = "Frise indisponible"; }
+      return { id, button };
+    });
+    const syncTypes = () => qtypes.forEach(({ id, button }) => button.setAttribute("aria-pressed", String(id === questionType)));
     const modes = Object.keys(MODE_LABELS).map((m) => {
       const note = el("small", { class: "mode-note" });
       const button = el("button", { class: "bubble big", onclick: () => start(m) }, el("span", {}, MODE_LABELS[m]), note);
@@ -191,12 +230,16 @@
       ...(timeline ? [step("step-period", "1", "Choix de la période",
         "Clique sur une ou plusieurs périodes. Sans sélection, toutes les périodes sont jouées."), timeline.node] : []),
       count,
-      step("step-mode", timeline ? "2" : "1", "Choix de la difficulté",
+      step("step-qtype", timeline ? "2" : "1", "Type de question",
+        "Retrouver l'artiste ou la période. Mélangé alterne les deux."),
+      el("div", { class: "qtypes" }, ...qtypes.map((x) => x.button)),
+      step("step-mode", timeline ? "3" : "2", "Choix de la difficulté",
         "Facile, Moyen ou Difficile. Mixte mélange les trois niveaux."),
       el("div", { class: "modes" }, ...modes.map((x) => x.button)),
       el("nav", { class: "page-links" },
         el("button", { class: "page-link", onclick: () => showFavorites() }, "Mes coups de cœur"),
         el("button", { class: "page-link", onclick: showAbout }, "À propos")));
+    syncTypes();
     refresh();
   }
 
@@ -214,7 +257,9 @@
   }
 
   function start(mode) {
-    game = Q.newGame(mode, selectedPeriods);
+    game = Q.newGame(mode, selectedPeriods, {
+      type: questionType, periods: periodDefs.map((p) => ({ id: p.id, name: p.name })),
+    });
     game.results = []; // { workId, ok }
     showQuestion();
   }
@@ -238,6 +283,64 @@
     });
   }
 
+  // Loupe : un clic sur l'image, le bouton « Zoom » ou la touche Z agrandit ; la souris ou le doigt déplace la zone vue
+  // (les flèches aussi), Échap ou un nouveau clic referme. Au premier zoom, une image plus grande est préchargée ;
+  // si elle échoue, on garde la petite.
+  function zoomFrame(work, img) {
+    const box = el("div", { class: "zoom-box" }, img);
+    const button = el("button", { class: "zoom-btn", "aria-pressed": "false", "aria-keyshortcuts": "Z", title: "Zoomer (Z)" }, "Zoom +");
+    const view = { x: 50, y: 50 }; // point de l'image au centre de la vue, en %
+    let zoomed = false;
+    let preloaded = false;
+    let down = null;
+
+    const clamp = (v) => Math.min(Math.max(v, 0), 100);
+    const aim = () => { img.style.transformOrigin = `${view.x}% ${view.y}%`; };
+    function set(on) {
+      zoomed = on;
+      box.classList.toggle("zoomed", on);
+      img.style.transform = on ? `scale(${ZOOM})` : "";
+      button.setAttribute("aria-pressed", String(on));
+      button.textContent = on ? "Zoom −" : "Zoom +";
+      if (on && !preloaded) {
+        preloaded = true;
+        const big = thumbUrl(work.image, ZOOM_IMAGE);
+        if (big !== work.image) {
+          const pre = new Image();
+          pre.onload = () => { img.src = big; };
+          pre.src = big;
+        }
+      }
+      aim();
+    }
+
+    box.addEventListener("pointerdown", (e) => { down = { x: e.clientX, y: e.clientY }; });
+    box.addEventListener("pointermove", (e) => {
+      if (!zoomed) return;
+      const r = box.getBoundingClientRect();
+      view.x = clamp(((e.clientX - r.left) / r.width) * 100);
+      view.y = clamp(((e.clientY - r.top) / r.height) * 100);
+      aim();
+    });
+    // Un glissement au doigt déplace la vue sans refermer la loupe.
+    box.addEventListener("click", (e) => {
+      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) return;
+      set(!zoomed);
+    });
+    button.addEventListener("click", () => set(!zoomed));
+    button.addEventListener("keydown", (e) => {
+      const arrows = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] };
+      if (e.key === "Escape" && zoomed) { set(false); e.preventDefault(); }
+      else if (zoomed && arrows[e.key]) {
+        view.x = clamp(view.x + arrows[e.key][0]);
+        view.y = clamp(view.y + arrows[e.key][1]);
+        aim();
+        e.preventDefault();
+      }
+    });
+    return el("div", { class: "frame" }, box, button);
+  }
+
   function renderQuestion(q, position) {
     const work = index.byId.get(q.workId);
     let answered = false;
@@ -257,26 +360,16 @@
     const notice = noticeCard(work); // null sans notice : pas de carte vide
     const hearts = heartsBlock(work);
 
-    const buttons = q.choices.map((c, i) =>
-      el("button", { class: "bubble", "aria-keyshortcuts": String(i + 1), onclick: () => answer(c) },
-        el("span", { class: "key", "aria-hidden": "true" }, String(i + 1)), c.name));
-
-    function answer(choice) {
-      if (answered) return;
+    // Une fois la réponse donnée : légende, cœurs, notice et « Suivant » (les autres types montrent aussi l'artiste).
+    function reveal(ok, message) {
       answered = true;
-      const ok = choice.id === q.answerId;
       game.results.push({ workId: work.id, ok });
-      buttons.forEach((b, i) => {
-        b.disabled = true;
-        if (q.choices[i].id === q.answerId) b.classList.add("good");
-        else if (q.choices[i].id === choice.id) b.classList.add("bad");
-      });
       dots.replaceChildren(...dotsFor(position + 1));
       caption.hidden = false;
       const period = periodDefs.find((p) => p.id === work.period);
       caption.replaceChildren(
         el("strong", {}, work.title),
-        el("span", {}, [work.year, work.museum].filter(Boolean).join(" · ")),
+        el("span", {}, [q.type === "artiste" ? null : work.artist, work.year, work.museum].filter(Boolean).join(" · ")),
         el("span", { class: "caption-tags" },
           el("span", { class: "caption-tag caption-level level-" + work.difficulty }, `Niveau : ${MODE_LABELS[work.difficulty] || work.difficulty}`),
           ...(period ? [el("span", { class: "caption-tag" }, `Période : ${period.name}`)] : [])),
@@ -284,20 +377,43 @@
       hearts.hidden = false;
       if (notice) notice.hidden = false;
       next.hidden = false;
-      say(ok ? "Bonne réponse." : `Mauvaise réponse. C'était ${work.artist}.`);
+      say(message);
       next.focus();
     }
 
     const art = el("div", { class: "stage-art" },
-      el("figure", { class: "artwork" }, el("div", { class: "frame" }, img), caption));
+      el("figure", { class: "artwork" }, zoomFrame(work, img), caption));
     const side = el("div", { class: "stage-side" },
-      ...[el("div", { class: "grid" }, ...buttons), hearts, notice, next].filter(Boolean));
+      ...[el("p", { class: "prompt" }, PROMPTS[q.type]),
+        choiceControl(q, reveal), hearts, notice, next].filter(Boolean));
     // Croix : retour au menu à tout moment, même en milieu de partie.
     const quit = el("button", {
       class: "quit", "aria-label": "Quitter la partie et revenir au menu", title: "Quitter la partie",
       onclick: showHome,
     }, "×");
     show("question", quit, dots, el("div", { class: "stage" }, art, side));
+  }
+
+  // Quatre réponses (artiste ou période) : touches 1 à 4.
+  function choiceControl(q, reveal) {
+    let done = false;
+    const buttons = q.choices.map((c, i) =>
+      el("button", { class: "bubble", "aria-keyshortcuts": String(i + 1), onclick: () => answer(c) },
+        el("span", { class: "key", "aria-hidden": "true" }, String(i + 1)), c.name));
+
+    function answer(choice) {
+      if (done) return;
+      done = true;
+      const ok = choice.id === q.answerId;
+      buttons.forEach((b, i) => {
+        b.disabled = true;
+        if (q.choices[i].id === q.answerId) b.classList.add("good");
+        else if (q.choices[i].id === choice.id) b.classList.add("bad");
+      });
+      const right = q.choices.find((c) => c.id === q.answerId).name;
+      reveal(ok, ok ? "Bonne réponse." : `Mauvaise réponse. C'était ${right}.`);
+    }
+    return el("div", { class: "grid" }, ...buttons);
   }
 
   // Deux cœurs : l'œuvre (par id) et l'artiste (par artist_id), chacun avec une note facultative.

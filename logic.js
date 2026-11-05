@@ -9,6 +9,9 @@
     mixte: [...Array(4).fill("facile"), ...Array(3).fill("moyen"), ...Array(3).fill("difficile")],
   };
   const DISTRACTORS = 3;
+  // Types de question : « artiste » (qui l'a créée ?), « periode » (quelle période ?).
+  // Une partie utilise un de ces types, ou « melange » (un type tiré au hasard à chaque question).
+  const QUESTION_TYPES = ["artiste", "periode"];
 
   // Mouvements voisins, utilisés quand il manque des distracteurs (repli « mouvements voisins »).
   const NEIGHBORS = {
@@ -108,13 +111,30 @@
       .slice(0, DISTRACTORS);
     const choices = shuffle(
       [{ id: work.artist_id, name: work.artist }, ...picked.map((a) => ({ id: a.id, name: a.name }))], rng);
-    return { workId: work.id, level, answerId: work.artist_id, choices, step, fallback: step ? STEPS[step] : null };
+    return { type: "artiste", workId: work.id, level, answerId: work.artist_id, choices, step, fallback: step ? STEPS[step] : null };
+  }
+
+  // Question « quelle période ? » : la bonne période + 3 autres (`periods` : [{ id, name }] dans l'ordre chronologique).
+  // Facile : au hasard ; moyen : parmi les 5 plus proches dans le temps ; difficile : les 3 plus proches.
+  function buildPeriodQuestion(work, periods, rng) {
+    const at = periods.findIndex((p) => p.id === work.period);
+    if (at < 0) return null;
+    const gap = (p) => Math.abs(periods.indexOf(p) - at);
+    let others = shuffle(periods.filter((p) => p.id !== work.period), rng);
+    if (work.difficulty === "moyen") others = shuffle(others.sort((a, b) => gap(a) - gap(b)).slice(0, DISTRACTORS + 2), rng);
+    else if (work.difficulty === "difficile") others.sort((a, b) => gap(a) - gap(b));
+    const picked = others.slice(0, DISTRACTORS);
+    if (picked.length < DISTRACTORS) return null;
+    const choices = shuffle([periods[at], ...picked].map((p) => ({ id: p.id, name: p.name })), rng);
+    return { type: "periode", workId: work.id, level: work.difficulty, answerId: work.period, choices, step: 0, fallback: null };
   }
 
   // `selection` : ensemble d'identifiants de période, ou null/vide = toutes les périodes.
-  function newGame(mode, selection = null) {
+  // `options.type` : type de question (artiste par défaut, ou melange) ; `options.periods` : [{ id, name }] pour la question de période.
+  function newGame(mode, selection = null, options = {}) {
     if (!MODES[mode]) throw new Error("Mode inconnu : " + mode);
     return {
+      type: options.type || "artiste", periods: options.periods || [],
       mode, levels: MODES[mode].slice(), usedWorks: new Set(), usedArtists: new Set(), failed: new Set(),
       selection: selection && selection.size ? new Set(selection) : null,
     };
@@ -196,18 +216,42 @@
     return null;
   }
 
+  // Types à essayer, dans l'ordre : le type de la partie, ou tous (au hasard) en mode mélangé.
+  // La question de période demande au moins quatre périodes définies ; sinon on se rabat sur l'artiste.
+  function typesToTry(game, rng) {
+    const usable = QUESTION_TYPES.filter((t) => t !== "periode" || game.periods.length > DISTRACTORS);
+    if (game.type === "melange") return shuffle(usable, rng);
+    return usable.includes(game.type) ? [game.type] : ["artiste"];
+  }
+
+  function pickQuestion(index, game, fresh, type, rng) {
+    const shuffled = shuffle(fresh, rng);
+    if (type === "artiste") {
+      const questions = shuffled.map((w) => buildQuestion(index, w, rng, game.selection)).filter(Boolean);
+      if (!questions.length) return null;
+      const best = Math.min(...questions.map((q) => q.step));
+      return questions.find((x) => x.step === best);
+    }
+    for (const w of shuffled) {
+      const q = buildPeriodQuestion(w, game.periods, rng);
+      if (q) return q;
+    }
+    return null;
+  }
+
   function drawAtLevel(index, game, level, rng) {
     const pool = index.byLevel[level].filter(
       (w) => !game.usedWorks.has(w.id) && !game.failed.has(w.id) && inPeriods(w, game.selection));
     let fresh = pool.filter((w) => !game.usedArtists.has(w.artist_id));
     if (!fresh.length) fresh = pool; // plus d'artiste neuf à ce niveau : on tolère un artiste répété
-    const questions = shuffle(fresh, rng).map((w) => buildQuestion(index, w, rng, game.selection)).filter(Boolean);
-    if (!questions.length) return null;
-    const best = Math.min(...questions.map((q) => q.step));
-    const q = questions.find((x) => x.step === best);
-    game.usedWorks.add(q.workId);
-    game.usedArtists.add(index.byId.get(q.workId).artist_id);
-    return q;
+    for (const type of typesToTry(game, rng)) {
+      const q = pickQuestion(index, game, fresh, type, rng);
+      if (!q) continue;
+      game.usedWorks.add(q.workId);
+      game.usedArtists.add(index.byId.get(q.workId).artist_id);
+      return q;
+    }
+    return null;
   }
 
   // Image injoignable : l'œuvre est écartée pour la partie et son artiste redevient disponible.
@@ -218,7 +262,7 @@
   }
 
   const api = {
-    LEVELS, MODES, STEPS, buildIndex, buildQuestion, newGame, drawQuestion, releaseQuestion,
+    LEVELS, MODES, STEPS, QUESTION_TYPES, buildIndex, buildQuestion, buildPeriodQuestion, newGame, drawQuestion, releaseQuestion,
     eligibleCounts, modeAvailable, timelineWidths, timelineLayout, yearPosition,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
