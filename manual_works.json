@@ -372,5 +372,16 @@
     "private": true,
     "source": "private",
     "artist_id": "Q156736"
+  },
+  {
+    "title": "Saint Jean-Baptiste",
+    "artist": "Léonard de Vinci",
+    "artist_id": "Q762",
+    "year": 1514,
+    "movement": "Renaissance",
+    "type": "peinture",
+    "museum": "Louvre (Paris)",
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Leonardo_da_Vinci_-_Saint_John_the_Baptist_C2RMF_retouched.jpg",
+    "wikipedia_url": "https://fr.wikipedia.org/wiki/Saint_Jean-Baptiste_(Léonard_de_Vinci)"
   }
 ]
