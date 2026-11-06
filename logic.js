@@ -136,7 +136,8 @@
     return {
       type: options.type || "artiste", periods: options.periods || [],
       mode, levels: MODES[mode].slice(), usedWorks: new Set(), usedArtists: new Set(), failed: new Set(),
-      selection: selection && selection.size ? new Set(selection) : null,
+      // Question de période : le filtre de période donnerait la réponse, il est ignoré.
+      selection: selection && selection.size && options.type !== "periode" ? new Set(selection) : null,
     };
   }
 
@@ -219,7 +220,8 @@
   // Types à essayer, dans l'ordre : le type de la partie, ou tous (au hasard) en mode mélangé.
   // La question de période demande au moins quatre périodes définies ; sinon on se rabat sur l'artiste.
   function typesToTry(game, rng) {
-    const usable = QUESTION_TYPES.filter((t) => t !== "periode" || game.periods.length > DISTRACTORS);
+    // En mélangé, un filtre de période exclut aussi la question de période (elle serait trop facile).
+    const usable = QUESTION_TYPES.filter((t) => t !== "periode" || (game.periods.length > DISTRACTORS && !game.selection));
     if (game.type === "melange") return shuffle(usable, rng);
     return usable.includes(game.type) ? [game.type] : ["artiste"];
   }

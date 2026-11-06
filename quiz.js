@@ -185,7 +185,7 @@
     const timeline = periodDefs.length ? buildTimeline(counts, toggle) : null;
     const qtypes = Object.entries(QTYPE_LABELS).map(([id, [label, hint]]) => {
       const button = el("button", { class: "qtype", "aria-pressed": "false",
-        onclick: () => { questionType = id; saveQuestionType(); syncTypes(); } },
+        onclick: () => { questionType = id; saveQuestionType(); syncTypes(); refresh(); } },
         el("span", { class: "qtype-name" }, label), el("span", { class: "qtype-hint" }, hint));
       if (id === "periode" && periodDefs.length < 4) { button.disabled = true; button.title = "Frise indisponible"; }
       return { id, button };
@@ -205,10 +205,16 @@
 
     // Met à jour cases, compteur et bulles de mode, sans reconstruire l'écran (le focus reste sur la case).
     function refresh() {
-      const selection = selectedPeriods.size ? selectedPeriods : null;
+      // Question de période : le filtre de période est inutile (il donnerait la réponse), la frise est verrouillée.
+      const locked = questionType === "periode";
+      const selection = selectedPeriods.size && !locked ? selectedPeriods : null;
       if (timeline) {
+        timeline.node.classList.toggle("locked", locked);
         for (const [id, button] of timeline.buttons) {
-          button.setAttribute("aria-pressed", String(selectedPeriods.has(id)));
+          button.setAttribute("aria-pressed", String(selectedPeriods.has(id) && !locked));
+          button.disabled = locked || !counts.get(id);
+          if (locked) button.title = "Inutile pour une question de période";
+          else if (counts.get(id)) button.removeAttribute("title");
         }
       }
       const eligible = Q.eligibleCounts(index, selection);
@@ -231,7 +237,7 @@
         "Clique sur une ou plusieurs périodes. Sans sélection, toutes les périodes sont jouées."), timeline.node] : []),
       count,
       step("step-qtype", timeline ? "2" : "1", "Type de question",
-        "Retrouver l'artiste ou la période. Mélangé alterne les deux."),
+        "Période : la frise est désactivée. Mélangé alterne les deux types, sans filtre de période."),
       el("div", { class: "qtypes" }, ...qtypes.map((x) => x.button)),
       step("step-mode", timeline ? "3" : "2", "Choix de la difficulté",
         "Facile, Moyen ou Difficile. Mixte mélange les trois niveaux."),

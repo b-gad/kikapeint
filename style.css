@@ -227,6 +227,7 @@ a:active { background: var(--ink); color: var(--panel-2); }
 .period[aria-pressed="true"] .period-dates { color: var(--ink); }
 .period:active:not(:disabled) { background: var(--ink); color: var(--panel-2); }
 .period:active:not(:disabled) .period-dates { color: var(--panel-2); }
+.timeline-scroll.locked .period:disabled { background: var(--panel-2); box-shadow: none; opacity: .4; }
 .period:disabled {
   cursor: not-allowed; box-shadow: none; transform: translate(var(--shadow-sm), var(--shadow-sm)); opacity: .6;
   background: repeating-linear-gradient(135deg, var(--panel) 0 6px, var(--bg) 6px 12px);
